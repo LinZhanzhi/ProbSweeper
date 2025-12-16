@@ -1,0 +1,5 @@
+{
+  "name": "Gemini Minesweeper",
+  "description": "A smart Minesweeper game with custom boards, auto-solver analyzer, and Gemini-powered hints.",
+  "requestFramePermissions": []
+}
