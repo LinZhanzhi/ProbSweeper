@@ -77,7 +77,7 @@ export const Game: React.FC = () => {
       newBoard = result.board;
       hitMine = result.hitMine;
     }
-    
+
     setBoard(newBoard);
 
     if (hitMine) {
@@ -95,13 +95,13 @@ export const Game: React.FC = () => {
   const handleRightClick = useCallback((e: React.MouseEvent, r: number, c: number) => {
     e.preventDefault();
     if (status === GameStatus.WON || status === GameStatus.LOST || isProcessing) return;
-    
+
     // Only allow flagging hidden cells
     if (board[r][c].state === CellState.REVEALED) return;
 
     const newBoard = toggleFlag(board, r, c);
     setBoard(newBoard);
-    
+
     // Update mines left counter
     const flaggedCount = newBoard.flat().filter(c => c.state === CellState.FLAGGED).length;
     setMinesLeft(config.mines - flaggedCount);
@@ -119,12 +119,12 @@ export const Game: React.FC = () => {
       }
 
       setIsProcessing(true);
-      
+
       // Delay for visual "keep up"
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      const move = getNextBestMove(board);
-      
+      const move = getNextBestMove(board, config.mines);
+
       if (move) {
         if (move.action === 'reveal') {
            handleCellClick(move.row, move.col);
@@ -157,7 +157,7 @@ export const Game: React.FC = () => {
     if (status !== GameStatus.PLAYING && status !== GameStatus.IDLE) return;
     setIsProcessing(true);
     setLastHint("Asking Gemini...");
-    
+
     try {
       const move = await getGeminiHint(board);
       if (move) {
@@ -188,7 +188,7 @@ export const Game: React.FC = () => {
   return (
     <div className="flex flex-col items-center min-h-screen bg-slate-900 text-gray-100 font-sans py-8 px-4 w-full">
       <div className="max-w-4xl w-full flex flex-col gap-6">
-        
+
         {/* Header & Stats */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
           <div className="flex items-center gap-3">
@@ -200,7 +200,7 @@ export const Game: React.FC = () => {
                <p className="text-xs text-slate-400">Powered by Probability Analysis</p>
              </div>
           </div>
-          
+
           <div className="flex gap-6 font-mono text-xl">
             <div className="bg-black/40 px-4 py-2 rounded border border-slate-600 text-red-400 min-w-[100px] text-center">
                {String(minesLeft).padStart(3, '0')}
@@ -216,7 +216,7 @@ export const Game: React.FC = () => {
           <button onClick={() => resetGame()} className="btn-primary flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded font-semibold transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95">
             <RefreshCw size={18} /> New Game
           </button>
-          
+
           <div className="h-8 w-[1px] bg-slate-600 mx-2 self-center hidden md:block"></div>
 
           <button onClick={() => { setConfig(PRESETS.BEGINNER); resetGame(PRESETS.BEGINNER); }} className={`px-3 py-1 rounded transition-colors ${config.rows === 9 ? 'bg-slate-600 text-white' : 'hover:bg-slate-700 text-slate-300'}`}>Easy</button>
@@ -248,18 +248,18 @@ export const Game: React.FC = () => {
 
         {/* AI & Auto Tools */}
         <div className="flex flex-wrap gap-3 justify-center">
-           <button 
+           <button
              onClick={() => setIsAutoMode(!isAutoMode)}
              disabled={status === GameStatus.WON || status === GameStatus.LOST}
-             className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all shadow-xl ${isAutoMode 
-               ? 'bg-red-500 hover:bg-red-400 animate-pulse' 
+             className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all shadow-xl ${isAutoMode
+               ? 'bg-red-500 hover:bg-red-400 animate-pulse'
                : 'bg-purple-600 hover:bg-purple-500 hover:shadow-purple-500/20'} disabled:opacity-50 disabled:cursor-not-allowed`}
            >
              {isAutoMode ? <StopCircle /> : <Play />}
              {isAutoMode ? 'Stop Auto-Finish' : 'Auto Finish Mode'}
            </button>
 
-           <button 
+           <button
              onClick={handleAskGemini}
              disabled={status !== GameStatus.PLAYING && status !== GameStatus.IDLE || isProcessing}
              className="flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-500 rounded-lg font-bold transition-all shadow-xl hover:shadow-teal-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -268,7 +268,7 @@ export const Game: React.FC = () => {
              Ask Gemini Hint
            </button>
         </div>
-        
+
         {/* Hint Display */}
         {lastHint && (
           <div className="bg-slate-800/80 border border-slate-600 text-blue-200 px-4 py-3 rounded-lg text-center font-mono text-sm flex items-center justify-center gap-2 animate-in fade-in">
@@ -279,10 +279,10 @@ export const Game: React.FC = () => {
 
         {/* The Board */}
         <div className="w-full overflow-x-auto pb-8 text-center">
-           <Board 
-             board={board} 
-             onCellClick={handleCellClick} 
-             onCellRightClick={handleRightClick} 
+           <Board
+             board={board}
+             onCellClick={handleCellClick}
+             onCellRightClick={handleRightClick}
              gameStatus={status}
            />
         </div>
@@ -298,12 +298,12 @@ export const Game: React.FC = () => {
                    {status === GameStatus.WON ? 'VICTORY!' : 'GAME OVER'}
                  </h2>
                  <p className="text-slate-400 mb-6">
-                   {status === GameStatus.WON 
-                     ? `You cleared the field in ${time} seconds!` 
+                   {status === GameStatus.WON
+                     ? `You cleared the field in ${time} seconds!`
                      : 'Better luck next time, commander.'}
                  </p>
-                 <button 
-                   onClick={() => resetGame()} 
+                 <button
+                   onClick={() => resetGame()}
                    className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold text-lg shadow-lg hover:shadow-blue-500/25 transition-all"
                  >
                    Play Again
