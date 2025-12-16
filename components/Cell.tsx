@@ -22,19 +22,20 @@ const NUMBER_COLORS = [
 ];
 
 export const Cell: React.FC<CellProps> = React.memo(({ data, onClick, onContextMenu, gameStatus }) => {
-  const { row, col, state, isMine, neighborMines } = data;
+  const { row, col, state, isMine, neighborMines, probability } = data;
 
   const isRevealed = state === CellState.REVEALED;
   const isFlagged = state === CellState.FLAGGED;
-  
+  const isHidden = state === CellState.HIDDEN;
+
   // Game Over Logic
   const isLost = gameStatus === 3;
   const showMine = isLost && isMine;
   const wrongFlag = isLost && !isMine && isFlagged;
 
   // Dynamic Classes
-  let baseClasses = "w-8 h-8 md:w-10 md:h-10 border flex items-center justify-center font-bold select-none transition-colors duration-75 text-sm md:text-base cursor-pointer";
-  
+  let baseClasses = "w-8 h-8 md:w-10 md:h-10 border flex items-center justify-center font-bold select-none transition-colors duration-75 text-sm md:text-base cursor-pointer relative";
+
   if (isRevealed) {
     baseClasses += " bg-gray-200 border-gray-400 border-[1px]";
   } else {
@@ -46,6 +47,18 @@ export const Cell: React.FC<CellProps> = React.memo(({ data, onClick, onContextM
   }
 
   const renderContent = () => {
+    if (isHidden && probability !== undefined) {
+        const probPercent = Math.round(probability * 100);
+        let color = 'text-white';
+        if (probability === 1) color = 'text-green-600 font-extrabold';
+        else if (probability === 0) color = 'text-red-600 font-extrabold';
+        else if (probability > 0.8) color = 'text-green-700';
+        else if (probability < 0.2) color = 'text-red-700';
+        else color = 'text-blue-800';
+
+        return <span className={`text-[10px] md:text-xs ${color} z-10`}>{probPercent}%</span>;
+    }
+
     if (isFlagged) {
        return <Flag className={`w-4 h-4 md:w-5 md:h-5 ${wrongFlag ? 'text-red-900' : 'text-red-600 fill-red-600'}`} />;
     }

@@ -57,7 +57,7 @@ class BoardAdapter {
 }
 
 // A heuristic solver that acts as our "Analyzer"
-export const getNextBestMove = (board: CellData[][], totalMines: number = 0): SolverMove | null => {
+export const getNextBestMove = (board: CellData[][], totalMines: number = 0, playStyle: number = 1): SolverMove | null => {
   const rows = board.length;
   const cols = board[0].length;
 
@@ -150,7 +150,7 @@ export const getNextBestMove = (board: CellData[][], totalMines: number = 0): So
       }
 
       // Run engine
-      const options = { playStyle: 1, verbose: false }; // 1 = Flags
+      const options = { playStyle: playStyle, verbose: false };
       const pe = new ProbabilityEngine(boardAdapter, witnesses, witnessed, squaresLeft, minesLeft, options);
 
       if (pe.validWeb) {
@@ -245,4 +245,82 @@ export const getNextBestMove = (board: CellData[][], totalMines: number = 0): So
   }
 
   return null;
+};
+
+export const getBoardProbabilities = (board: CellData[][], totalMines: number): { row: number, col: number, probability: number }[] => {
+    const results: { row: number, col: number, probability: number }[] = [];
+    const boardAdapter = new BoardAdapter(board);
+    const witnesses: TileAdapter[] = [];
+    const witnessed: TileAdapter[] = [];
+    const work = new Set<number>();
+    let minesLeft = totalMines;
+    let squaresLeft = 0;
+
+    // Prepare data for engine
+    for (let i = 0; i < boardAdapter.tiles.length; i++) {
+        const tile = boardAdapter.tiles[i];
+
+        if (tile.isSolverFoundBomb()) {
+            minesLeft--;
+            continue;
+        } else if (tile.isCovered()) {
+            squaresLeft++;
+            continue;
+        }
+
+        // It's a revealed tile, check if it's a witness
+        const adjTiles = boardAdapter.getAdjacent(tile);
+        let needsWork = false;
+        for (const adj of adjTiles) {
+            if (adj.isCovered() && !adj.isSolverFoundBomb()) {
+                needsWork = true;
+                work.add(adj.index);
+            }
+        }
+
+        if (needsWork) {
+            witnesses.push(tile);
+        }
+    }
+
+    for (const index of work) {
+        const tile = boardAdapter.getTile(index);
+        tile.onEdge = true;
+        witnessed.push(tile);
+    }
+
+    // Run engine
+    const options = { playStyle: 1, verbose: false, forceAnalysis: true };
+    const pe = new ProbabilityEngine(boardAdapter, witnesses, witnessed, squaresLeft, minesLeft, options);
+
+    if (pe.validWeb) {
+        pe.process();
+
+        // 1. Off-edge probability
+        for (const tile of boardAdapter.tiles) {
+            if (tile.isCovered() && !tile.onEdge && !tile.isSolverFoundBomb()) {
+                results.push({ row: tile.y, col: tile.x, probability: pe.offEdgeProbability });
+            }
+        }
+
+        // 2. Box probabilities
+        for (let i = 0; i < pe.boxes.length; i++) {
+            const prob = pe.boxProb[i];
+            for (const tile of pe.boxes[i].tiles) {
+                results.push({ row: tile.y, col: tile.x, probability: prob });
+            }
+        }
+
+        // 3. Local clears (100% safe)
+        for (const tile of pe.localClears) {
+             results.push({ row: tile.y, col: tile.x, probability: 1 });
+        }
+
+        // 4. Mines found (0% safe)
+        for (const tile of pe.minesFound) {
+             results.push({ row: tile.y, col: tile.x, probability: 0 });
+        }
+    }
+
+    return results;
 };

@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Board } from './Board';
 import { createBoard, revealCell, toggleFlag, checkWin, ensureSafeStart, chordCell } from '../utils/minesweeper';
-import { getNextBestMove } from '../utils/solver';
-import { getGeminiHint } from '../services/geminiService';
+import { getNextBestMove, getBoardProbabilities } from '../utils/solver';
+import { PLAY_STYLE_FLAGS, PLAY_STYLE_NOFLAGS, PLAY_STYLE_EFFICIENCY } from '../utils/probabilityEngine';
 import { BoardConfig, CellData, GameStatus, CellState } from '../types';
-import { RefreshCw, Play, Brain, Settings, AlertTriangle, Sparkles, StopCircle } from 'lucide-react';
+import { RefreshCw, Play, Brain, Settings, AlertTriangle, Sparkles, StopCircle, Microscope, Cog } from 'lucide-react';
 
 const PRESETS = {
   BEGINNER: { rows: 9, cols: 9, mines: 10 },
@@ -24,8 +24,27 @@ export const Game: React.FC = () => {
   const [showCustom, setShowCustom] = useState(false);
   const [customConfig, setCustomConfig] = useState({ rows: 20, cols: 20, mines: 50 });
   const [lastHint, setLastHint] = useState<string | null>(null);
+  const [analysisMode, setAnalysisMode] = useState(false);
+  const [solverMode, setSolverMode] = useState<number>(PLAY_STYLE_FLAGS);
+  const [showSolverSettings, setShowSolverSettings] = useState(false);
 
   const timerRef = useRef<number | null>(null);
+
+  // Memoized board with probabilities
+  const displayBoard = useMemo(() => {
+    if (!analysisMode || status === GameStatus.WON || status === GameStatus.LOST) {
+      return board;
+    }
+
+    const probs = getBoardProbabilities(board, config.mines);
+    return board.map((row, r) => row.map((cell, c) => {
+      const p = probs.find(x => x.row === r && x.col === c);
+      return {
+        ...cell,
+        probability: p ? p.probability : undefined
+      };
+    }));
+  }, [board, analysisMode, config.mines, status]);
 
   // Initialize game
   const resetGame = useCallback((newConfig: BoardConfig = config) => {
@@ -123,7 +142,7 @@ export const Game: React.FC = () => {
       // Delay for visual "keep up"
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      const move = getNextBestMove(board, config.mines);
+      const move = getNextBestMove(board, config.mines, solverMode);
 
       if (move) {
         if (move.action === 'reveal') {
@@ -152,26 +171,8 @@ export const Game: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [isAutoMode, board, status, handleCellClick, config.mines]);
 
-  // Gemini Hint
-  const handleAskGemini = async () => {
-    if (status !== GameStatus.PLAYING && status !== GameStatus.IDLE) return;
-    setIsProcessing(true);
-    setLastHint("Asking Gemini...");
+  // Gemini Hint removed
 
-    try {
-      const move = await getGeminiHint(board);
-      if (move) {
-        setLastHint(`Gemini suggests: ${move.action.toUpperCase()} (${move.row}, ${move.col}). Reason: ${move.reasoning}`);
-        // Highlight logic could go here, but text is fine for now
-      } else {
-        setLastHint("Gemini was unsure or API unavailable.");
-      }
-    } catch (e) {
-      setLastHint("Error contacting Gemini.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,26 +248,66 @@ export const Game: React.FC = () => {
         )}
 
         {/* AI & Auto Tools */}
-        <div className="flex flex-wrap gap-3 justify-center">
-           <button
-             onClick={() => setIsAutoMode(!isAutoMode)}
-             disabled={status === GameStatus.WON || status === GameStatus.LOST}
-             className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all shadow-xl ${isAutoMode
-               ? 'bg-red-500 hover:bg-red-400 animate-pulse'
-               : 'bg-purple-600 hover:bg-purple-500 hover:shadow-purple-500/20'} disabled:opacity-50 disabled:cursor-not-allowed`}
-           >
-             {isAutoMode ? <StopCircle /> : <Play />}
-             {isAutoMode ? 'Stop Auto-Finish' : 'Auto Finish Mode'}
-           </button>
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-wrap gap-3 justify-center items-center">
+             <div className="flex items-center gap-1">
+               <button
+                 onClick={() => setIsAutoMode(!isAutoMode)}
+                 disabled={status === GameStatus.WON || status === GameStatus.LOST}
+                 className={`flex items-center gap-2 px-6 py-3 rounded-l-lg font-bold transition-all shadow-xl ${isAutoMode
+                   ? 'bg-red-500 hover:bg-red-400 animate-pulse'
+                   : 'bg-purple-600 hover:bg-purple-500 hover:shadow-purple-500/20'} disabled:opacity-50 disabled:cursor-not-allowed`}
+               >
+                 {isAutoMode ? <StopCircle /> : <Play />}
+                 {isAutoMode ? 'Stop Auto' : 'Auto Finish'}
+               </button>
+               <button
+                  onClick={() => setShowSolverSettings(!showSolverSettings)}
+                  className="bg-purple-700 hover:bg-purple-600 px-3 py-3 rounded-r-lg shadow-xl border-l border-purple-800 transition-colors"
+                  title="Solver Settings"
+               >
+                  <Cog size={24} />
+               </button>
+             </div>
 
-           <button
-             onClick={handleAskGemini}
-             disabled={status !== GameStatus.PLAYING && status !== GameStatus.IDLE || isProcessing}
-             className="flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-500 rounded-lg font-bold transition-all shadow-xl hover:shadow-teal-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-           >
-             <Sparkles size={18} />
-             Ask Gemini Hint
-           </button>
+             <button
+               onClick={() => setAnalysisMode(!analysisMode)}
+               disabled={status === GameStatus.WON || status === GameStatus.LOST}
+               className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all shadow-xl ${analysisMode
+                 ? 'bg-teal-500 hover:bg-teal-400 ring-2 ring-teal-300'
+                 : 'bg-teal-700 hover:bg-teal-600 hover:shadow-teal-500/20'} disabled:opacity-50 disabled:cursor-not-allowed`}
+             >
+               <Microscope size={18} />
+               {analysisMode ? 'Analysis On' : 'Analysis Mode'}
+             </button>
+          </div>
+
+          {/* Solver Settings Panel */}
+          {showSolverSettings && (
+            <div className="bg-slate-800 p-4 rounded-xl border border-slate-600 animate-in slide-in-from-top-2 flex gap-4 items-center">
+               <span className="text-slate-300 font-semibold">Solver Style:</span>
+               <div className="flex gap-2">
+                  <button
+                    onClick={() => setSolverMode(PLAY_STYLE_FLAGS)}
+                    className={`px-3 py-1 rounded text-sm ${solverMode === PLAY_STYLE_FLAGS ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                  >
+                    Flags
+                  </button>
+                  <button
+                    onClick={() => setSolverMode(PLAY_STYLE_NOFLAGS)}
+                    className={`px-3 py-1 rounded text-sm ${solverMode === PLAY_STYLE_NOFLAGS ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                  >
+                    No Flags
+                  </button>
+                  <button
+                    onClick={() => setSolverMode(PLAY_STYLE_EFFICIENCY)}
+                    className={`px-3 py-1 rounded text-sm ${solverMode === PLAY_STYLE_EFFICIENCY ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                  >
+                    Efficiency
+                  </button>
+               </div>
+            </div>
+          )}
         </div>
 
         {/* Hint Display */}
@@ -280,7 +321,7 @@ export const Game: React.FC = () => {
         {/* The Board */}
         <div className="w-full overflow-x-auto pb-8 text-center">
            <Board
-             board={board}
+             board={displayBoard}
              onCellClick={handleCellClick}
              onCellRightClick={handleRightClick}
              gameStatus={status}

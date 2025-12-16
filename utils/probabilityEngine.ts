@@ -1319,7 +1319,7 @@ class ProbabilityEngine {
         }
 
         // Decide whether to do full analysis or stop early if we found local solutions
-        if (this.localClears.length == 0) {
+        if (this.localClears.length == 0 || this.options.forceAnalysis) {
             this.calculateBoxProbabilities();  // Full probability calculation
         } else {
             this.bestProbability = 1;  // We found definite safe moves, no need for probabilities
@@ -1728,7 +1728,7 @@ class ProbabilityEngine {
         // if we are down here then there is no witness which is on the boundary, so we have processed a complete set of independent witnesses
 
         // if playing for efficiency check all edges, slower but we get better information
-        if (this.playStyle != PLAY_STYLE_EFFICIENCY && this.playStyle != PLAY_STYLE_NOFLAGS_EFFICIENCY && !analysisMode && !this.options.fullProbability) {
+        if (this.playStyle != PLAY_STYLE_EFFICIENCY && this.playStyle != PLAY_STYLE_NOFLAGS_EFFICIENCY && !this.options.analysisMode && !this.options.fullProbability) {
 
             // look to see if this sub-section of the edge has any certain clears
             for (let i = 0; i < this.mask.length; i++) {
@@ -1773,7 +1773,7 @@ class ProbabilityEngine {
             }
 
             // if we have found some local clears then stop and use these
-            if (this.localClears.length > 0) {
+            if (this.localClears.length > 0 && !this.options.forceAnalysis) {
                 return null;
             }
 
@@ -2068,6 +2068,7 @@ class ProbabilityEngine {
 
     // an edge is isolated if every tile on it is completely surrounded by boxes also on the same edge
     checkEdgeIsIsolated() {
+        return false; // Optimization disabled: Missing WitnessWebIterator and Cruncher classes
 
         const edgeTiles = new Set();
         const edgeWitnesses = new Set();
@@ -2958,6 +2959,11 @@ function combination(mines, squares) {
 
 export const ACTION_FLAG = 0;
 export const ACTION_CLEAR = 1;
+
+export const PLAY_STYLE_FLAGS = 1;
+export const PLAY_STYLE_NOFLAGS = 2;
+export const PLAY_STYLE_EFFICIENCY = 3;
+export const PLAY_STYLE_NOFLAGS_EFFICIENCY = 4;
 
 export class Action {
     constructor(x, y, prob, action) {
