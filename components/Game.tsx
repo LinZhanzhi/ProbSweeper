@@ -50,6 +50,7 @@ export const Game: React.FC = () => {
   const [selectedPreset, setSelectedPreset] = useState<'BEGINNER' | 'INTERMEDIATE' | 'EXPERT' | 'CUSTOM'>('BEGINNER');
 
   const timerRef = useRef<number | null>(null);
+  const boardContainerRef = useRef<HTMLDivElement>(null);
 
   // Memoized board with probabilities
   const displayBoard = useMemo(() => {
@@ -384,6 +385,26 @@ export const Game: React.FC = () => {
       } else if (e.key.toLowerCase() === 'h') {
         setAnalysisMode(prev => !prev);
       }
+
+      // Scroll shortcuts (WASD)
+      const SCROLL_AMOUNT = 200; // Approx 5 cells
+      if (e.key.toLowerCase() === 'w') {
+          if (boardContainerRef.current) {
+              boardContainerRef.current.scrollBy({ top: -SCROLL_AMOUNT, behavior: 'smooth' });
+          }
+      } else if (e.key.toLowerCase() === 's') {
+          if (boardContainerRef.current) {
+              boardContainerRef.current.scrollBy({ top: SCROLL_AMOUNT, behavior: 'smooth' });
+          }
+      } else if (e.key.toLowerCase() === 'a') {
+          if (boardContainerRef.current) {
+              boardContainerRef.current.scrollBy({ left: -SCROLL_AMOUNT, behavior: 'smooth' });
+          }
+      } else if (e.key.toLowerCase() === 'd') {
+          if (boardContainerRef.current) {
+              boardContainerRef.current.scrollBy({ left: SCROLL_AMOUNT, behavior: 'smooth' });
+          }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -428,6 +449,7 @@ export const Game: React.FC = () => {
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">R</span> <span>Replay Game</span>
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">T</span> <span>New Game</span>
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">H</span> <span>Toggle Analysis</span>
+                    <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">WASD</span> <span>Scroll Board</span>
                     <div className="col-span-2 h-px bg-slate-700 my-1"></div>
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">Tab</span> <span>Switch Focus</span>
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">Space</span> <span>Confirm Action</span>
@@ -654,7 +676,7 @@ export const Game: React.FC = () => {
 
       {/* Scrollable Board Section */}
       <div className="flex-1 w-full flex items-center justify-center bg-slate-900 p-4 min-h-0 overflow-hidden">
-        <div className="w-[85%] h-[85%] overflow-auto bg-slate-950 relative flex p-8 border-4 border-slate-800 rounded-xl shadow-2xl">
+        <div ref={boardContainerRef} className="w-[85%] h-[85%] overflow-auto bg-slate-950 relative flex p-8 border-4 border-slate-800 rounded-xl shadow-2xl">
           <div className="min-w-min min-h-min m-auto">
              {isGenerating && (
                  <div className="absolute inset-0 bg-slate-900/80 z-50 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm">
