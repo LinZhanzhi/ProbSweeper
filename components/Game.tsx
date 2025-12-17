@@ -280,8 +280,8 @@ export const Game: React.FC = () => {
       if (selectedPreset === 'EXPERT') newConfig = PRESETS.EXPERT;
       if (selectedPreset === 'CUSTOM') {
           newConfig = {
-            rows: Math.min(50, Math.max(5, customConfig.rows)),
-            cols: Math.min(50, Math.max(5, customConfig.cols)),
+            rows: Math.min(100, Math.max(5, customConfig.rows)),
+            cols: Math.min(100, Math.max(5, customConfig.cols)),
             mines: Math.min(Math.floor(customConfig.rows * customConfig.cols * 0.8), Math.max(1, customConfig.mines))
           };
       }
@@ -390,8 +390,10 @@ export const Game: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [hoveredCell, confirmationModal, handleRightClick, handleCellClick, handleReplay, handleGenerateGame, status, gameOverFocus, lastSafeBoard, resetGame]); // Dependencies might cause re-binds, but acceptable here
   return (
-    <div className="flex flex-col items-center min-h-screen bg-slate-900 text-gray-100 font-sans py-8 px-4 w-full">
-      <div className="max-w-4xl w-full flex flex-col gap-6">
+    <div className="h-screen w-full bg-slate-900 text-gray-100 font-sans flex flex-col overflow-hidden">
+      {/* Fixed Header Section */}
+      <div className="flex-none w-full flex flex-col items-center gap-4 p-4 bg-slate-900 z-10 shadow-xl border-b border-slate-800">
+        <div className="max-w-4xl w-full flex flex-col gap-4">
 
         {/* Controls */}
         <div className="flex flex-wrap gap-2 justify-center items-center bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 relative">
@@ -647,32 +649,38 @@ export const Game: React.FC = () => {
              {lastHint}
           </div>
         )}
-
-        {/* The Board */}
-        <div className="w-full overflow-x-auto pb-8 text-center min-h-[300px] flex items-center justify-center relative">
-           {isGenerating && (
-               <div className="absolute inset-0 bg-slate-900/80 z-50 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm">
-                   <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                   <p className="text-blue-400 font-bold text-lg animate-pulse">Generating No Guess Board...</p>
-                   <p className="text-slate-400 text-sm mt-2">{generationStatus}</p>
-               </div>
-           )}
-           {gameStarted ? (
-               <Board
-                 board={finalDisplayBoard}
-                 onCellClick={handleCellClick}
-                 onCellRightClick={handleRightClick}
-                 onCellMouseEnter={handleCellMouseEnter}
-                 onCellMouseLeave={handleCellMouseLeave}
-                 gameStatus={status}
-               />
-           ) : (
-               <div className="text-slate-500 flex flex-col items-center gap-4">
-                   <div className="w-16 h-16 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin opacity-20"></div>
-                   <p>Click "Generate Game" to start</p>
-               </div>
-           )}
         </div>
+      </div>
+
+      {/* Scrollable Board Section */}
+      <div className="flex-1 w-full flex items-center justify-center bg-slate-900 p-4 min-h-0 overflow-hidden">
+        <div className="w-[85%] h-[85%] overflow-auto bg-slate-950 relative flex p-8 border-4 border-slate-800 rounded-xl shadow-2xl">
+          <div className="min-w-min min-h-min m-auto">
+             {isGenerating && (
+                 <div className="absolute inset-0 bg-slate-900/80 z-50 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm">
+                     <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                     <p className="text-blue-400 font-bold text-lg animate-pulse">Generating No Guess Board...</p>
+                     <p className="text-slate-400 text-sm mt-2">{generationStatus}</p>
+                 </div>
+             )}
+             {gameStarted ? (
+                 <Board
+                   board={finalDisplayBoard}
+                   onCellClick={handleCellClick}
+                   onCellRightClick={handleRightClick}
+                   onCellMouseEnter={handleCellMouseEnter}
+                   onCellMouseLeave={handleCellMouseLeave}
+                   gameStatus={status}
+                 />
+             ) : (
+                 <div className="text-slate-500 flex flex-col items-center gap-4">
+                     <div className="w-16 h-16 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin opacity-20"></div>
+                     <p>Click "Generate Game" to start</p>
+                 </div>
+             )}
+          </div>
+        </div>
+      </div>
 
         {/* Confirmation Modal */}
         {confirmationModal.isOpen && (
@@ -715,7 +723,6 @@ export const Game: React.FC = () => {
            </div>
         )}
 
-      </div>
     </div>
   );
 };
