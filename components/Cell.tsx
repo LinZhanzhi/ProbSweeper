@@ -6,6 +6,8 @@ interface CellProps {
   data: CellData;
   onClick: (r: number, c: number) => void;
   onContextMenu: (e: React.MouseEvent, r: number, c: number) => void;
+  onMouseEnter: (r: number, c: number) => void;
+  onMouseLeave: (r: number, c: number) => void;
   gameStatus: number; // 3 = LOST
 }
 
@@ -21,8 +23,8 @@ const NUMBER_COLORS = [
   'text-gray-600'
 ];
 
-export const Cell: React.FC<CellProps> = React.memo(({ data, onClick, onContextMenu, gameStatus }) => {
-  const { row, col, state, isMine, neighborMines, probability, isSuggestedStart } = data;
+export const Cell: React.FC<CellProps> = React.memo(({ data, onClick, onContextMenu, onMouseEnter, onMouseLeave, gameStatus }) => {
+  const { row, col, state, isMine, neighborMines, probability, isSuggestedStart, isExploded } = data;
 
   const isRevealed = state === CellState.REVEALED;
   const isFlagged = state === CellState.FLAGGED;
@@ -43,7 +45,11 @@ export const Cell: React.FC<CellProps> = React.memo(({ data, onClick, onContextM
   }
 
   if (showMine && !isFlagged) {
-    baseClasses = "w-8 h-8 md:w-10 md:h-10 border border-gray-400 flex items-center justify-center bg-red-500";
+    if (isExploded) {
+        baseClasses = "w-8 h-8 md:w-10 md:h-10 border border-gray-400 flex items-center justify-center bg-red-500";
+    } else {
+        baseClasses = "w-8 h-8 md:w-10 md:h-10 border border-gray-400 flex items-center justify-center bg-gray-200";
+    }
   }
 
   const renderContent = () => {
@@ -80,6 +86,8 @@ export const Cell: React.FC<CellProps> = React.memo(({ data, onClick, onContextM
       className={baseClasses}
       onClick={() => onClick(row, col)}
       onContextMenu={(e) => onContextMenu(e, row, col)}
+      onMouseEnter={() => onMouseEnter(row, col)}
+      onMouseLeave={() => onMouseLeave(row, col)}
       data-row={row}
       data-col={col}
     >

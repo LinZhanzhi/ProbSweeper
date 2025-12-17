@@ -5,7 +5,7 @@ import { getNextBestMove, getBoardProbabilities } from '../utils/solver';
 import { generateNoGuessBoard } from '../utils/boardGenerator';
 import { PLAY_STYLE_FLAGS, PLAY_STYLE_NOFLAGS, PLAY_STYLE_EFFICIENCY } from '../utils/probabilityEngine';
 import { BoardConfig, CellData, GameStatus, CellState } from '../types';
-import { RefreshCw, Play, Brain, Settings, AlertTriangle, Sparkles, StopCircle, Microscope, Cog, ShieldCheck, Zap, RotateCcw } from 'lucide-react';
+import { RefreshCw, Play, Brain, Settings, AlertTriangle, Sparkles, StopCircle, Microscope, Cog, ShieldCheck, Zap, RotateCcw, Smile, Frown, Glasses } from 'lucide-react';
 
 const PRESETS = {
   BEGINNER: { rows: 9, cols: 9, mines: 10 },
@@ -35,6 +35,14 @@ export const Game: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStatus, setGenerationStatus] = useState<string>("");
   const [suggestedStart, setSuggestedStart] = useState<{r: number, c: number} | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<{r: number, c: number} | null>(null);
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean;
+    type: 'replay' | 'newGame';
+    focus: 'confirm' | 'cancel';
+  }>({ isOpen: false, type: 'newGame', focus: 'confirm' });
+  const [lastSafeBoard, setLastSafeBoard] = useState<CellData[][] | null>(null);
+  const [gameOverFocus, setGameOverFocus] = useState<'undo' | 'replay' | 'newGame'>('undo');
 
   // New State for Game Setup
   const [gameStarted, setGameStarted] = useState(false);
@@ -67,6 +75,13 @@ export const Game: React.FC = () => {
           isSuggestedStart: suggestedStart && suggestedStart.r === r && suggestedStart.c === c
       })));
   }, [displayBoard, suggestedStart]);
+
+  // Reset focus when game is lost
+  useEffect(() => {
+      if (status === GameStatus.LOST) {
+          setGameOverFocus('undo');
+      }
+  }, [status]);
 
   // Initialize game
   const resetGame = useCallback(async (newConfig: BoardConfig = config) => {
@@ -163,6 +178,15 @@ export const Game: React.FC = () => {
     setBoard(newBoard);
 
     if (hitMine) {
+      setLastSafeBoard(board); // Save state before the fatal move
+      // Mark the exploded mine
+      const explodedBoard = newBoard.map((row, rowIndex) => row.map((cell, colIndex) => {
+          if (rowIndex === r && colIndex === c) {
+              return { ...cell, isExploded: true };
+          }
+          return cell;
+      }));
+      setBoard(explodedBoard);
       setStatus(GameStatus.LOST);
       setIsAutoMode(false);
     } else {
@@ -188,6 +212,14 @@ export const Game: React.FC = () => {
     const flaggedCount = newBoard.flat().filter(c => c.state === CellState.FLAGGED).length;
     setMinesLeft(config.mines - flaggedCount);
   }, [board, status, config.mines, isProcessing]);
+
+  const handleCellMouseEnter = useCallback((r: number, c: number) => {
+    setHoveredCell({ r, c });
+  }, []);
+
+  const handleCellMouseLeave = useCallback((r: number, c: number) => {
+    setHoveredCell(prev => (prev && prev.r === r && prev.c === c ? null : prev));
+  }, []);
 
   // Auto Solver Logic
   useEffect(() => {
@@ -278,6 +310,83 @@ export const Game: React.FC = () => {
       // setSuggestedStart(null);
   };
 
+  const handleUndo = () => {
+      if (lastSafeBoard) {
+          setBoard(lastSafeBoard);
+          setStatus(GameStatus.PLAYING);
+          setLastSafeBoard(null);
+          // Recalculate mines left based on restored board
+          const flaggedCount = lastSafeBoard.flat().filter(c => c.state === CellState.FLAGGED).length;
+          setMinesLeft(config.mines - flaggedCount);
+      }
+  };
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // If modal is open, handle modal navigation
+      if (confirmationModal.isOpen) {
+        e.preventDefault(); // Prevent default scrolling/actions
+        if (e.key === 'Tab') {
+          setConfirmationModal(prev => ({
+            ...prev,
+            focus: prev.focus === 'confirm' ? 'cancel' : 'confirm'
+          }));
+        } else if (e.key === ' ') {
+          if (confirmationModal.focus === 'confirm') {
+            if (confirmationModal.type === 'replay') handleReplay();
+            else handleGenerateGame();
+          }
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        } else if (e.key === 'Escape') {
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        }
+        return;
+      }
+
+      // Game Over Modal Navigation
+      if (status === GameStatus.LOST) {
+          if (e.key === 'Tab') {
+              e.preventDefault();
+              setGameOverFocus(prev => {
+                  if (prev === 'undo') return 'replay';
+                  if (prev === 'replay') return 'newGame';
+                  return 'undo';
+              });
+          } else if (e.key === ' ') {
+              e.preventDefault();
+              if (gameOverFocus === 'undo') handleUndo();
+              if (gameOverFocus === 'replay') handleReplay();
+              if (gameOverFocus === 'newGame') resetGame();
+          }
+          return;
+      }
+
+      // Game shortcuts
+      if (e.key.toLowerCase() === 'f') {
+        if (hoveredCell) {
+            const mockEvent = { preventDefault: () => {} } as React.MouseEvent;
+            handleRightClick(mockEvent, hoveredCell.r, hoveredCell.c);
+        }
+      } else if (e.key.toLowerCase() === 'e') {
+        if (hoveredCell) {
+            handleCellClick(hoveredCell.r, hoveredCell.c);
+        }
+      } else if (e.key.toLowerCase() === 'r') {
+        setConfirmationModal({ isOpen: true, type: 'replay', focus: 'confirm' });
+      } else if (e.key.toLowerCase() === 't') {
+        setConfirmationModal({ isOpen: true, type: 'newGame', focus: 'confirm' });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [hoveredCell, confirmationModal, handleRightClick, handleCellClick, handleReplay, handleGenerateGame, status, gameOverFocus, lastSafeBoard, resetGame]); // Dependencies might cause re-binds, but acceptable here
   return (
     <div className="flex flex-col items-center min-h-screen bg-slate-900 text-gray-100 font-sans py-8 px-4 w-full">
       <div className="max-w-4xl w-full flex flex-col gap-6">
@@ -285,13 +394,34 @@ export const Game: React.FC = () => {
         {/* Header & Stats */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
           <div className="flex items-center gap-3">
-             <div className="bg-red-600 p-2 rounded-lg">
-               <AlertTriangle className="text-white" />
-             </div>
-             <div>
-               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Gemini Sweeper</h1>
-               <p className="text-xs text-slate-400">Powered by Probability Analysis</p>
-             </div>
+             {/* Face Icon Status */}
+             <button
+                onClick={() => {
+                    if (status === GameStatus.PLAYING) setConfirmationModal({ isOpen: true, type: 'newGame', focus: 'confirm' });
+                    else resetGame();
+                }}
+                className="w-12 h-12 bg-yellow-400 hover:bg-yellow-300 rounded-full border-4 border-yellow-600 flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+                title={status === GameStatus.PLAYING ? "Reset Game" : "New Game"}
+             >
+                {status === GameStatus.WON ? (
+                    <Glasses className="text-black w-8 h-8" />
+                ) : status === GameStatus.LOST ? (
+                    <Frown className="text-black w-8 h-8" />
+                ) : (
+                    <Smile className="text-black w-8 h-8" />
+                )}
+             </button>
+
+             {/* Undo Button (Only visible when lost) */}
+             {status === GameStatus.LOST && lastSafeBoard && (
+                 <button
+                    onClick={handleUndo}
+                    className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg border border-slate-500 text-yellow-400 transition-colors"
+                    title="Undo Last Move"
+                 >
+                    <RotateCcw size={24} className="rotate-180" />
+                 </button>
+             )}
           </div>
 
           <div className="flex gap-6 font-mono text-xl">
@@ -493,6 +623,8 @@ export const Game: React.FC = () => {
                  board={finalDisplayBoard}
                  onCellClick={handleCellClick}
                  onCellRightClick={handleRightClick}
+                 onCellMouseEnter={handleCellMouseEnter}
+                 onCellMouseLeave={handleCellMouseLeave}
                  gameStatus={status}
                />
            ) : (
@@ -503,35 +635,39 @@ export const Game: React.FC = () => {
            )}
         </div>
 
-        {/* Game Over Modal */}
-        {(status === GameStatus.WON || status === GameStatus.LOST) && (
-           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+        {/* Confirmation Modal */}
+        {confirmationModal.isOpen && (
+           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-in fade-in duration-200">
               <div className="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-600 max-w-sm w-full text-center">
-                 <div className={`text-6xl mb-4 ${status === GameStatus.WON ? 'animate-bounce' : ''}`}>
-                    {status === GameStatus.WON ? '🎉' : '💥'}
-                 </div>
-                 <h2 className={`text-3xl font-black mb-2 ${status === GameStatus.WON ? 'text-green-400' : 'text-red-500'}`}>
-                   {status === GameStatus.WON ? 'VICTORY!' : 'GAME OVER'}
+                 <h2 className="text-2xl font-bold mb-4 text-white">
+                   {confirmationModal.type === 'replay' ? 'Replay Game?' : 'Start New Game?'}
                  </h2>
                  <p className="text-slate-400 mb-6">
-                   {status === GameStatus.WON
-                     ? `You cleared the field in ${time} seconds!`
-                     : 'Better luck next time, commander.'}
+                   {confirmationModal.type === 'replay'
+                     ? 'Are you sure you want to restart this board? Current progress will be lost.'
+                     : 'Are you sure you want to generate a new board? Current progress will be lost.'}
                  </p>
-                 <div className="flex flex-col gap-3">
+                 <div className="flex gap-4 justify-center">
                      <button
-                       onClick={() => resetGame()}
-                       className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold text-lg shadow-lg hover:shadow-blue-500/25 transition-all flex items-center justify-center gap-2"
+                       onClick={() => {
+                         if (confirmationModal.type === 'replay') handleReplay();
+                         else handleGenerateGame();
+                         setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+                       }}
+                       className={`px-6 py-2 rounded-lg font-bold transition-all ${confirmationModal.focus === 'confirm' ? 'bg-blue-600 ring-2 ring-blue-400 scale-105' : 'bg-slate-700 text-slate-300'}`}
                      >
-                       <RefreshCw size={20} /> Play New Board
+                       Confirm
                      </button>
                      <button
-                       onClick={() => handleReplay()}
-                       className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold text-lg shadow-lg hover:shadow-slate-500/25 transition-all flex items-center justify-center gap-2"
+                       onClick={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+                       className={`px-6 py-2 rounded-lg font-bold transition-all ${confirmationModal.focus === 'cancel' ? 'bg-slate-600 ring-2 ring-slate-400 scale-105' : 'bg-slate-700 text-slate-300'}`}
                      >
-                       <RotateCcw size={20} /> Replay This Board
+                       Cancel
                      </button>
                  </div>
+                 <p className="text-xs text-slate-500 mt-4">
+                   Use <span className="font-mono bg-slate-700 px-1 rounded">Tab</span> to select, <span className="font-mono bg-slate-700 px-1 rounded">Space</span> to confirm
+                 </p>
               </div>
            </div>
         )}

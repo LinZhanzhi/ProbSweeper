@@ -13,6 +13,7 @@ export interface CellData {
   neighborMines: number;
   probability?: number; // For the analyzer visualization
   isSuggestedStart?: boolean;
+  isExploded?: boolean; // The specific mine that caused the loss
 }
 
 export enum GameStatus {
