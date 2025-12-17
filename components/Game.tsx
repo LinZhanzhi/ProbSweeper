@@ -5,7 +5,7 @@ import { getNextBestMove, getBoardProbabilities } from '../utils/solver';
 import { generateNoGuessBoard } from '../utils/boardGenerator';
 import { PLAY_STYLE_FLAGS, PLAY_STYLE_NOFLAGS, PLAY_STYLE_EFFICIENCY } from '../utils/probabilityEngine';
 import { BoardConfig, CellData, GameStatus, CellState } from '../types';
-import { RefreshCw, Play, Brain, Settings, AlertTriangle, Sparkles, StopCircle, Microscope, Cog, ShieldCheck, Zap, RotateCcw, Smile, Frown, Glasses, Keyboard, Camera } from 'lucide-react';
+import { RefreshCw, Play, Brain, Settings, AlertTriangle, Sparkles, StopCircle, Microscope, Cog, ShieldCheck, Zap, RotateCcw, Smile, Frown, Glasses, Keyboard, Camera, Rocket } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 const PRESETS = {
@@ -23,6 +23,7 @@ export const Game: React.FC = () => {
   const [time, setTime] = useState(0);
   const [isAutoMode, setIsAutoMode] = useState(false);
   const [isFastAutoMode, setIsFastAutoMode] = useState(false);
+  const [isLightSpeedMode, setIsLightSpeedMode] = useState(false);
   const [isCertainMode, setIsCertainMode] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isReplay, setIsReplay] = useState(false);
@@ -267,27 +268,93 @@ export const Game: React.FC = () => {
 
       setIsProcessing(true);
 
-      // Delay for visual "keep up"
-      await new Promise(resolve => setTimeout(resolve, isFastAutoMode ? 50 : 600));
+      if (isLightSpeedMode) {
+          // Batch processing loop
+          // Deep copy for safety if we are mutating cells
+          let currentBoard = JSON.parse(JSON.stringify(board)); 
+          let movesMade = 0;
+          let gameStatus = status;
+          let currentMinesLeft = minesLeft;
+          
+          // Safety break to prevent infinite loops
+          const MAX_MOVES = 2500; // Enough for 50x50 board
 
-      const move = getNextBestMove(board, config.mines, solverMode, isCertainMode);
+          while (movesMade < MAX_MOVES) {
+              const move = getNextBestMove(currentBoard, config.mines, solverMode, isCertainMode);
+              if (!move) break;
 
-      if (move) {
-        if (move.action === 'reveal') {
-           handleCellClick(move.row, move.col);
-           setLastHint(`Analyzer: Revealed (${move.row}, ${move.col}) - ${move.reasoning}`);
-        } else {
-           // We manually handle flag action here since handleRightClick needs an event
-           const newBoard = toggleFlag(board, move.row, move.col);
-           setBoard(newBoard);
-           setLastHint(`Analyzer: Flagged (${move.row}, ${move.col}) - ${move.reasoning}`);
-           // Recalculate mines count
-            const flaggedCount = newBoard.flat().filter(c => c.state === CellState.FLAGGED).length;
-            setMinesLeft(config.mines - flaggedCount);
-        }
+              if (move.action === 'reveal') {
+                  // Handle First Move Safety
+                  if (gameStatus === GameStatus.IDLE && movesMade === 0) {
+                      if (!isNoGuessMode && !isReplay) {
+                          currentBoard = ensureSafeStart(currentBoard, move.row, move.col);
+                      }
+                      gameStatus = GameStatus.PLAYING;
+                  }
+
+                  const result = revealCell(currentBoard, move.row, move.col);
+                  currentBoard = result.board;
+                  if (result.hitMine) {
+                      gameStatus = GameStatus.LOST;
+                      // Mark the exploded mine
+                      currentBoard[move.row][move.col].isExploded = true;
+                      break;
+                  }
+              } else {
+                  // Flag
+                  currentBoard = toggleFlag(currentBoard, move.row, move.col);
+              }
+              
+              if (checkWin(currentBoard)) {
+                  gameStatus = GameStatus.WON;
+                  break;
+              }
+              
+              movesMade++;
+              
+              // Yield every 50 moves to prevent total UI freeze on huge boards
+              if (movesMade % 50 === 0) {
+                  await new Promise(r => setTimeout(r, 0));
+              }
+          }
+          
+          setBoard(currentBoard);
+          setStatus(gameStatus);
+          
+          // Update mines left
+          const flaggedCount = currentBoard.flat().filter((c: CellData) => c.state === CellState.FLAGGED).length;
+          setMinesLeft(config.mines - flaggedCount);
+          
+          if (gameStatus !== GameStatus.PLAYING) {
+              setIsAutoMode(false);
+          } else if (movesMade === 0) {
+              // No moves were made, stop auto
+              setIsAutoMode(false);
+              setLastHint("Analyzer: No logical moves found. Stuck!");
+          }
       } else {
-        setIsAutoMode(false);
-        setLastHint("Analyzer: No logical moves found. Stuck!");
+          // Delay for visual "keep up"
+          await new Promise(resolve => setTimeout(resolve, isFastAutoMode ? 50 : 600));
+
+          const move = getNextBestMove(board, config.mines, solverMode, isCertainMode);
+
+          if (move) {
+            if (move.action === 'reveal') {
+               handleCellClick(move.row, move.col);
+               setLastHint(`Analyzer: Revealed (${move.row}, ${move.col}) - ${move.reasoning}`);
+            } else {
+               // We manually handle flag action here since handleRightClick needs an event
+               const newBoard = toggleFlag(board, move.row, move.col);
+               setBoard(newBoard);
+               setLastHint(`Analyzer: Flagged (${move.row}, ${move.col}) - ${move.reasoning}`);
+               // Recalculate mines count
+                const flaggedCount = newBoard.flat().filter(c => c.state === CellState.FLAGGED).length;
+                setMinesLeft(config.mines - flaggedCount);
+            }
+          } else {
+            setIsAutoMode(false);
+            setLastHint("Analyzer: No logical moves found. Stuck!");
+          }
       }
       setIsProcessing(false);
     };
@@ -297,7 +364,7 @@ export const Game: React.FC = () => {
     }
 
     return () => clearTimeout(timeout);
-  }, [isAutoMode, board, status, handleCellClick, config.mines, isFastAutoMode, isCertainMode, solverMode]);
+  }, [isAutoMode, board, status, handleCellClick, config.mines, isFastAutoMode, isLightSpeedMode, isCertainMode, solverMode]);
 
   // Gemini Hint removed
 
@@ -727,11 +794,30 @@ const boardWidth = config.cols * CELL_SIZE + 40;
                <button
                  id="solver-fast-mode"
                  name="solver-fast-mode"
-                 onClick={() => setIsFastAutoMode(!isFastAutoMode)}
-                 className={`flex items-center gap-2 px-3 py-1 rounded text-sm transition-colors ${isFastAutoMode ? 'bg-yellow-600 text-white shadow-lg shadow-yellow-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                 onClick={() => {
+                     setIsFastAutoMode(!isFastAutoMode);
+                     if (!isFastAutoMode) setIsLightSpeedMode(false); // Disable light speed if disabling fast mode? No, independent.
+                     // Actually, let's make them mutually exclusive or hierarchical.
+                     // If Light Speed is on, Fast Mode is irrelevant.
+                     if (isLightSpeedMode) setIsLightSpeedMode(false);
+                 }}
+                 className={`flex items-center gap-2 px-3 py-1 rounded text-sm transition-colors ${isFastAutoMode && !isLightSpeedMode ? 'bg-yellow-600 text-white shadow-lg shadow-yellow-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                  title="Reduce delay between auto-moves to 0.05s"
                >
-                 <Zap size={14} className={isFastAutoMode ? "fill-white" : ""} /> Fast Mode
+                 <Zap size={14} className={isFastAutoMode && !isLightSpeedMode ? "fill-white" : ""} /> Fast Mode
+               </button>
+
+               <button
+                 id="solver-light-speed-mode"
+                 name="solver-light-speed-mode"
+                 onClick={() => {
+                     setIsLightSpeedMode(!isLightSpeedMode);
+                     if (!isLightSpeedMode) setIsFastAutoMode(false);
+                 }}
+                 className={`flex items-center gap-2 px-3 py-1 rounded text-sm transition-colors ${isLightSpeedMode ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                 title="No delay between moves (Instant)"
+               >
+                 <Rocket size={14} className={isLightSpeedMode ? "fill-white" : ""} /> Light Speed
                </button>
 
                <button
