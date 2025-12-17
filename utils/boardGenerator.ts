@@ -1,6 +1,7 @@
 import { BoardConfig, CellData, CellState } from '../types';
 import { createBoard, revealCell, checkWin, DIRECTIONS } from './minesweeper';
-import { getBoardProbabilities } from './solver';
+import { getNextBestMove } from './solver';
+import { PLAY_STYLE_FLAGS } from './probabilityEngine';
 
 export const generateNoGuessBoard = async (
     config: BoardConfig,
@@ -135,32 +136,20 @@ const isSolvable = async (initialBoard: CellData[][], start: {r: number, c: numb
         // Check win
         if (checkWin(board)) return true;
 
-        // Get probabilities
-        // We use the heavy engine here.
-        // Note: getBoardProbabilities returns 1 for Safe, 0 for Mine.
-        // We disable forceAnalysis for speed - we just need ANY safe move.
-        const probs = getBoardProbabilities(board, totalMines, false);
+        // Use the main solver logic (getNextBestMove)
+        // We use PLAY_STYLE_FLAGS (standard) and isCertainMode = true
+        // This ensures we ONLY take 100% safe moves or flag 100% mines.
+        // No guessing allowed.
+        const move = getNextBestMove(board, totalMines, PLAY_STYLE_FLAGS, true);
 
-        const safeMoves = probs.filter(p => p.probability === 1);
-        const mineMoves = probs.filter(p => p.probability === 0);
-
-        if (safeMoves.length > 0 || mineMoves.length > 0) {
+        if (move) {
             progress = true;
-
-            // Apply all safe moves
-            for (const move of safeMoves) {
-                // Only reveal if hidden
-                if (board[move.row][move.col].state === CellState.HIDDEN) {
-                    const res = revealCell(board, move.row, move.col);
-                    board = res.board;
-                }
-            }
-
-            // Apply all mine flags (simulated)
-            for (const move of mineMoves) {
-                if (board[move.row][move.col].state === CellState.HIDDEN) {
-                    board[move.row][move.col].state = CellState.FLAGGED;
-                }
+            if (move.action === 'reveal') {
+                const res = revealCell(board, move.row, move.col);
+                board = res.board;
+                if (res.hitMine) return false; // Should not happen if solver is correct
+            } else if (move.action === 'flag') {
+                board[move.row][move.col].state = CellState.FLAGGED;
             }
         }
     }
