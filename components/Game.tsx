@@ -24,6 +24,7 @@ export const Game: React.FC = () => {
   const [isFastAutoMode, setIsFastAutoMode] = useState(false);
   const [isCertainMode, setIsCertainMode] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isReplay, setIsReplay] = useState(false);
   const [showCustom, setShowCustom] = useState(false);
   const [customConfig, setCustomConfig] = useState({ rows: 50, cols: 50, mines: 400 }); // Default 50x50
   const [lastHint, setLastHint] = useState<string | null>(null);
@@ -85,6 +86,7 @@ export const Game: React.FC = () => {
     setMinesLeft(newConfig.mines);
     setGameStarted(true);
     setSuggestedStart(null);
+    setIsReplay(false);
 
     if (isNoGuessMode) {
         setIsGenerating(true);
@@ -147,11 +149,9 @@ export const Game: React.FC = () => {
       // Normal reveal
       if (status === GameStatus.IDLE) {
         // Standard start logic (No Guess is pre-generated now)
-        if (!isNoGuessMode) {
+        if (!isNoGuessMode && !isReplay) {
             currentBoard = ensureSafeStart(currentBoard, r, c);
         }
-        // If No Guess mode, board is already generated and safe at (r,c) because of the check above
-
         setStatus(GameStatus.PLAYING);
       }
 
@@ -172,7 +172,7 @@ export const Game: React.FC = () => {
         setIsAutoMode(false);
       }
     }
-  }, [board, status, isProcessing, isNoGuessMode]);
+  }, [board, status, isProcessing, isNoGuessMode, isReplay, suggestedStart]);
 
   const handleRightClick = useCallback((e: React.MouseEvent, r: number, c: number) => {
     e.preventDefault();
@@ -274,9 +274,8 @@ export const Game: React.FC = () => {
       setLastHint(null);
       if (timerRef.current) clearInterval(timerRef.current);
       setGameStarted(true);
-
-      // Allow user to pick a new start position on replay
-      setSuggestedStart(null);
+      setIsReplay(true);
+      // setSuggestedStart(null);
   };
 
   return (
@@ -519,12 +518,20 @@ export const Game: React.FC = () => {
                      ? `You cleared the field in ${time} seconds!`
                      : 'Better luck next time, commander.'}
                  </p>
-                 <button
-                   onClick={() => resetGame()}
-                   className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold text-lg shadow-lg hover:shadow-blue-500/25 transition-all"
-                 >
-                   Play Again
-                 </button>
+                 <div className="flex flex-col gap-3">
+                     <button
+                       onClick={() => resetGame()}
+                       className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold text-lg shadow-lg hover:shadow-blue-500/25 transition-all flex items-center justify-center gap-2"
+                     >
+                       <RefreshCw size={20} /> Play New Board
+                     </button>
+                     <button
+                       onClick={() => handleReplay()}
+                       className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold text-lg shadow-lg hover:shadow-slate-500/25 transition-all flex items-center justify-center gap-2"
+                     >
+                       <RotateCcw size={20} /> Replay This Board
+                     </button>
+                 </div>
               </div>
            </div>
         )}
