@@ -484,15 +484,15 @@ export const Game: React.FC = () => {
                     <div className="flex flex-col gap-2">
                         <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
                             <input id="difficulty-beginner" type="radio" name="difficulty" checked={selectedPreset === 'BEGINNER'} onChange={() => setSelectedPreset('BEGINNER')} className="accent-blue-500" />
-                            <span>Easy (9x9, 10 mines)</span>
+                            <span>Easy (9W x 9H, 10 mines)</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
                             <input id="difficulty-intermediate" type="radio" name="difficulty" checked={selectedPreset === 'INTERMEDIATE'} onChange={() => setSelectedPreset('INTERMEDIATE')} className="accent-blue-500" />
-                            <span>Medium (16x16, 40 mines)</span>
+                            <span>Medium (16W x 16H, 40 mines)</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
                             <input id="difficulty-expert" type="radio" name="difficulty" checked={selectedPreset === 'EXPERT'} onChange={() => setSelectedPreset('EXPERT')} className="accent-blue-500" />
-                            <span>Hard (16x30, 99 mines)</span>
+                            <span>Hard (30W x 16H, 99 mines)</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
                             <input id="difficulty-custom" type="radio" name="difficulty" checked={selectedPreset === 'CUSTOM'} onChange={() => setSelectedPreset('CUSTOM')} className="accent-blue-500" />
