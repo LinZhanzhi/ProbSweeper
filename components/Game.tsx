@@ -5,7 +5,8 @@ import { getNextBestMove, getBoardProbabilities } from '../utils/solver';
 import { generateNoGuessBoard } from '../utils/boardGenerator';
 import { PLAY_STYLE_FLAGS, PLAY_STYLE_NOFLAGS, PLAY_STYLE_EFFICIENCY } from '../utils/probabilityEngine';
 import { BoardConfig, CellData, GameStatus, CellState } from '../types';
-import { RefreshCw, Play, Brain, Settings, AlertTriangle, Sparkles, StopCircle, Microscope, Cog, ShieldCheck, Zap, RotateCcw, Smile, Frown, Glasses, Keyboard } from 'lucide-react';
+import { RefreshCw, Play, Brain, Settings, AlertTriangle, Sparkles, StopCircle, Microscope, Cog, ShieldCheck, Zap, RotateCcw, Smile, Frown, Glasses, Keyboard, Camera } from 'lucide-react';
+import html2canvas from 'html2canvas';
 
 const PRESETS = {
   BEGINNER: { rows: 9, cols: 9, mines: 10 },
@@ -45,6 +46,7 @@ export const Game: React.FC = () => {
   const [gameOverFocus, setGameOverFocus] = useState<'undo' | 'replay' | 'newGame'>('undo');
   const [isZoomedOut, setIsZoomedOut] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
   const CELL_SIZE = 40; // Assumed cell size in pixels
 
   // New State for Game Setup
@@ -54,6 +56,33 @@ export const Game: React.FC = () => {
 
   const timerRef = useRef<number | null>(null);
   const boardContainerRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  // Export Logic
+  useEffect(() => {
+      if (isExporting && exportRef.current) {
+          const performExport = async () => {
+              try {
+                  const canvas = await html2canvas(exportRef.current!, {
+                      backgroundColor: '#0f172a', // slate-900
+                      scale: 1, // Default scale
+                      logging: false,
+                  });
+                  const link = document.createElement('a');
+                  link.download = `minesweeper-${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.png`;
+                  link.href = canvas.toDataURL();
+                  link.click();
+              } catch (err) {
+                  console.error("Export failed", err);
+                  alert("Failed to export image. See console for details.");
+              } finally {
+                  setIsExporting(false);
+              }
+          };
+          // Small delay to ensure layout is stable
+          setTimeout(performExport, 100);
+      }
+  }, [isExporting]);
 
   // Memoized board with probabilities
   const displayBoard = useMemo(() => {
@@ -485,6 +514,10 @@ const boardWidth = config.cols * CELL_SIZE + 40;
             <RotateCcw size={18} /> Replay
           </button>
 
+          <button id="export-button" name="export-button" onClick={() => setIsExporting(true)} disabled={isExporting || !gameStarted} className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded font-semibold transition-all shadow-lg hover:shadow-slate-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" title="Export Board Image">
+            <Camera size={18} /> {isExporting ? '...' : 'Export'}
+          </button>
+
           {/* Keyboard Shortcuts Info */}
           <div className="relative group">
             <button id="keyboard-shortcuts-button" name="keyboard-shortcuts-button" className="px-3 py-2 rounded transition-colors flex items-center gap-1 hover:bg-slate-700 text-slate-300">
@@ -805,6 +838,50 @@ const boardWidth = config.cols * CELL_SIZE + 40;
                  </p>
               </div>
            </div>
+        )}
+
+        {/* Hidden Export View */}
+        {isExporting && (
+            <div style={{ position: 'absolute', left: -9999, top: -9999 }}>
+                <div ref={exportRef} className="bg-slate-900 p-8 w-fit h-fit flex flex-col items-center gap-6 border border-slate-700">
+                    <div className="flex items-center gap-8 bg-slate-800/50 p-4 rounded-xl border border-slate-700 w-full justify-center">
+                        <div className="flex items-center gap-2">
+                            <div className="w-12 h-12 bg-yellow-400 rounded-full border-4 border-yellow-600 flex items-center justify-center shadow-lg">
+                                {status === GameStatus.WON ? (
+                                    <Glasses className="text-black w-7 h-7" />
+                                ) : status === GameStatus.LOST ? (
+                                    <Frown className="text-black w-7 h-7" />
+                                ) : (
+                                    <Smile className="text-black w-7 h-7" />
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex gap-6 font-mono text-3xl font-bold">
+                            <div className="text-red-400 flex items-center gap-3 bg-black/30 px-4 py-2 rounded-lg border border-slate-600">
+                                <span>💣</span> {String(minesLeft).padStart(3, '0')}
+                            </div>
+                            <div className="text-green-400 flex items-center gap-3 bg-black/30 px-4 py-2 rounded-lg border border-slate-600">
+                                <span>⏱️</span> {String(time).padStart(3, '0')}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 bg-slate-800 rounded-xl border border-slate-700 shadow-2xl">
+                        <Board
+                            board={finalDisplayBoard}
+                            onCellClick={() => {}}
+                            onCellRightClick={() => {}}
+                            onCellMouseEnter={() => {}}
+                            onCellMouseLeave={() => {}}
+                            gameStatus={status}
+                        />
+                    </div>
+                    
+                    <div className="text-slate-500 text-sm font-mono flex items-center gap-2">
+                        <Sparkles size={14} /> Gemini Minesweeper
+                    </div>
+                </div>
+            </div>
         )}
 
     </div>
