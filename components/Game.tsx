@@ -381,6 +381,8 @@ export const Game: React.FC = () => {
         setConfirmationModal({ isOpen: true, type: 'replay', focus: 'confirm' });
       } else if (e.key.toLowerCase() === 't') {
         setConfirmationModal({ isOpen: true, type: 'newGame', focus: 'confirm' });
+      } else if (e.key.toLowerCase() === 'h') {
+        setAnalysisMode(prev => !prev);
       }
     };
 
@@ -423,6 +425,7 @@ export const Game: React.FC = () => {
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">E</span> <span>Open Cell</span>
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">R</span> <span>Replay Game</span>
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">T</span> <span>New Game</span>
+                    <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">H</span> <span>Toggle Analysis</span>
                     <div className="col-span-2 h-px bg-slate-700 my-1"></div>
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">Tab</span> <span>Switch Focus</span>
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">Space</span> <span>Confirm Action</span>
