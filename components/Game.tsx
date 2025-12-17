@@ -391,49 +391,8 @@ export const Game: React.FC = () => {
     <div className="flex flex-col items-center min-h-screen bg-slate-900 text-gray-100 font-sans py-8 px-4 w-full">
       <div className="max-w-4xl w-full flex flex-col gap-6">
 
-        {/* Header & Stats */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
-          <div className="flex items-center gap-3">
-             {/* Face Icon Status */}
-             <div
-                id="game-status-indicator"
-                className="w-12 h-12 bg-yellow-400 rounded-full border-4 border-yellow-600 flex items-center justify-center shadow-lg"
-             >
-                {status === GameStatus.WON ? (
-                    <Glasses className="text-black w-8 h-8" />
-                ) : status === GameStatus.LOST ? (
-                    <Frown className="text-black w-8 h-8" />
-                ) : (
-                    <Smile className="text-black w-8 h-8" />
-                )}
-             </div>
-
-             {/* Undo Button (Only visible when lost) */}
-             {status === GameStatus.LOST && lastSafeBoard && (
-                 <button
-                    id="undo-button"
-                    name="undo-button"
-                    onClick={handleUndo}
-                    className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg border border-slate-500 text-yellow-400 transition-colors"
-                    title="Undo Last Move"
-                 >
-                    <RotateCcw size={24} className="rotate-180" />
-                 </button>
-             )}
-          </div>
-
-          <div className="flex gap-6 font-mono text-xl">
-            <div className="bg-black/40 px-4 py-2 rounded border border-slate-600 text-red-400 min-w-[100px] text-center">
-               {String(minesLeft).padStart(3, '0')}
-            </div>
-            <div className="bg-black/40 px-4 py-2 rounded border border-slate-600 text-green-400 min-w-[100px] text-center">
-               {String(time).padStart(3, '0')}
-            </div>
-          </div>
-        </div>
-
         {/* Controls */}
-        <div className="flex flex-wrap gap-2 justify-center bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 relative">
+        <div className="flex flex-wrap gap-2 justify-center items-center bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 relative">
           <div className="flex items-stretch">
             <button id="new-game-button" name="new-game-button" onClick={handleGenerateGame} disabled={isGenerating} className="btn-primary flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded-l-lg font-semibold transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-wait">
                 <RefreshCw size={18} className={isGenerating ? "animate-spin" : ""} /> {isGenerating ? "Generating..." : "New Game"}
@@ -469,6 +428,47 @@ export const Game: React.FC = () => {
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">Space</span> <span>Confirm Action</span>
                 </div>
             </div>
+          </div>
+
+          {/* Status & Stats */}
+          <div className="flex items-center gap-4 ml-2 pl-2 border-l border-slate-600">
+             <div className="flex items-center gap-2">
+                 {/* Face Icon Status */}
+                 <div
+                    id="game-status-indicator"
+                    className="w-10 h-10 bg-yellow-400 rounded-full border-4 border-yellow-600 flex items-center justify-center shadow-lg"
+                 >
+                    {status === GameStatus.WON ? (
+                        <Glasses className="text-black w-6 h-6" />
+                    ) : status === GameStatus.LOST ? (
+                        <Frown className="text-black w-6 h-6" />
+                    ) : (
+                        <Smile className="text-black w-6 h-6" />
+                    )}
+                 </div>
+
+                 {/* Undo Button (Only visible when lost) */}
+                 {status === GameStatus.LOST && lastSafeBoard && (
+                     <button
+                        id="undo-button"
+                        name="undo-button"
+                        onClick={handleUndo}
+                        className="p-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg border border-slate-500 text-yellow-400 transition-colors"
+                        title="Undo Last Move"
+                     >
+                        <RotateCcw size={20} className="rotate-180" />
+                     </button>
+                 )}
+             </div>
+
+             <div className="flex gap-2 font-mono text-lg">
+                <div className="bg-black/40 px-3 py-1.5 rounded border border-slate-600 text-red-400 min-w-[80px] text-center">
+                   {String(minesLeft).padStart(3, '0')}
+                </div>
+                <div className="bg-black/40 px-3 py-1.5 rounded border border-slate-600 text-green-400 min-w-[80px] text-center">
+                   {String(time).padStart(3, '0')}
+                </div>
+             </div>
           </div>
 
           {/* Game Settings Modal/Popover */}
