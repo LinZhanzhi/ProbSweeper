@@ -5,7 +5,7 @@ import { getNextBestMove, getBoardProbabilities } from '../utils/solver';
 import { generateNoGuessBoard } from '../utils/boardGenerator';
 import { PLAY_STYLE_FLAGS, PLAY_STYLE_NOFLAGS, PLAY_STYLE_EFFICIENCY } from '../utils/probabilityEngine';
 import { BoardConfig, CellData, GameStatus, CellState } from '../types';
-import { RefreshCw, Play, Brain, Settings, AlertTriangle, Sparkles, StopCircle, Microscope, Cog, ShieldCheck, Zap } from 'lucide-react';
+import { RefreshCw, Play, Brain, Settings, AlertTriangle, Sparkles, StopCircle, Microscope, Cog, ShieldCheck, Zap, RotateCcw } from 'lucide-react';
 
 const PRESETS = {
   BEGINNER: { rows: 9, cols: 9, mines: 10 },
@@ -203,7 +203,7 @@ export const Game: React.FC = () => {
       setIsProcessing(true);
 
       // Delay for visual "keep up"
-      await new Promise(resolve => setTimeout(resolve, isFastAutoMode ? 100 : 600));
+      await new Promise(resolve => setTimeout(resolve, isFastAutoMode ? 50 : 600));
 
       const move = getNextBestMove(board, config.mines, solverMode, isCertainMode);
 
@@ -258,6 +258,27 @@ export const Game: React.FC = () => {
       setShowGameSettings(false);
   };
 
+  const handleReplay = () => {
+      // Reset board state but keep mines
+      const newBoard = board.map(row => row.map(cell => ({
+          ...cell,
+          state: CellState.HIDDEN,
+          // Keep isMine and neighborMines
+      })));
+
+      setBoard(newBoard);
+      setStatus(GameStatus.IDLE);
+      setTime(0);
+      setMinesLeft(config.mines);
+      setIsAutoMode(false);
+      setLastHint(null);
+      if (timerRef.current) clearInterval(timerRef.current);
+      setGameStarted(true);
+
+      // Allow user to pick a new start position on replay
+      setSuggestedStart(null);
+  };
+
   return (
     <div className="flex flex-col items-center min-h-screen bg-slate-900 text-gray-100 font-sans py-8 px-4 w-full">
       <div className="max-w-4xl w-full flex flex-col gap-6">
@@ -288,6 +309,10 @@ export const Game: React.FC = () => {
         <div className="flex flex-wrap gap-2 justify-center bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 relative">
           <button onClick={handleGenerateGame} disabled={isGenerating} className="btn-primary flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-semibold transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-wait">
             <RefreshCw size={18} className={isGenerating ? "animate-spin" : ""} /> {isGenerating ? "Generating..." : "Generate Game"}
+          </button>
+
+          <button onClick={handleReplay} disabled={isGenerating || !gameStarted} className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded font-semibold transition-all shadow-lg hover:shadow-slate-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" title="Replay same board">
+            <RotateCcw size={18} />
           </button>
 
           <button
@@ -431,7 +456,7 @@ export const Game: React.FC = () => {
                <button
                  onClick={() => setIsFastAutoMode(!isFastAutoMode)}
                  className={`flex items-center gap-2 px-3 py-1 rounded text-sm transition-colors ${isFastAutoMode ? 'bg-yellow-600 text-white shadow-lg shadow-yellow-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
-                 title="Reduce delay between auto-moves to 0.1s"
+                 title="Reduce delay between auto-moves to 0.05s"
                >
                  <Zap size={14} className={isFastAutoMode ? "fill-white" : ""} /> Fast Mode
                </button>
