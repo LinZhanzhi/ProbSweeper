@@ -36,7 +36,7 @@ export const Cell: React.FC<CellProps> = React.memo(({ data, onClick, onContextM
   const wrongFlag = isLost && !isMine && isFlagged;
 
   // Dynamic Classes
-  let baseClasses = "w-8 h-8 md:w-10 md:h-10 border flex items-center justify-center font-bold select-none transition-colors duration-75 text-sm md:text-base cursor-pointer relative";
+  let baseClasses = "w-8 h-8 md:w-10 md:h-10 border flex items-center justify-center font-bold select-none transition-colors duration-75 text-sm md:text-base cursor-pointer relative leading-none";
 
   if (isRevealed) {
     baseClasses += " bg-gray-200 border-gray-400 border-[1px]";
