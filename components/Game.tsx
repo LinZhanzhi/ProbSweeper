@@ -858,10 +858,10 @@ const boardWidth = config.cols * CELL_SIZE + 40;
                         </div>
                         <div className="flex gap-6 font-mono text-3xl font-bold leading-none">
                             <div className="text-red-400 flex items-center gap-3 bg-black/30 px-4 py-2 rounded-lg border border-slate-600">
-                                <span className="translate-y-[2px]">💣</span> {String(minesLeft).padStart(3, '0')}
+                                <span className="translate-y-[2px]">💣</span> <span className="-translate-y-[2px]">{String(minesLeft).padStart(3, '0')}</span>
                             </div>
                             <div className="text-green-400 flex items-center gap-3 bg-black/30 px-4 py-2 rounded-lg border border-slate-600">
-                                <span className="translate-y-[2px]">⏱️</span> {String(time).padStart(3, '0')}
+                                <span className="translate-y-[2px]">⏱️</span> <span className="-translate-y-[2px]">{String(time).padStart(3, '0')}</span>
                             </div>
                         </div>
                     </div>

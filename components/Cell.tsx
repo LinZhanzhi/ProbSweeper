@@ -76,7 +76,7 @@ export const Cell: React.FC<CellProps> = React.memo(({ data, onClick, onContextM
       return <Bomb className="w-5 h-5 text-black fill-black" />;
     }
     if (isRevealed && neighborMines > 0) {
-      return <span className={NUMBER_COLORS[neighborMines]}>{neighborMines}</span>;
+      return <span className={`${NUMBER_COLORS[neighborMines]} -translate-y-[1px]`}>{neighborMines}</span>;
     }
     return null;
   };
