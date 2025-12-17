@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flag, Bomb } from 'lucide-react';
+import { Flag, Bomb, Crosshair } from 'lucide-react';
 import { CellData, CellState } from '../types';
 
 interface CellProps {
@@ -22,7 +22,7 @@ const NUMBER_COLORS = [
 ];
 
 export const Cell: React.FC<CellProps> = React.memo(({ data, onClick, onContextMenu, gameStatus }) => {
-  const { row, col, state, isMine, neighborMines, probability } = data;
+  const { row, col, state, isMine, neighborMines, probability, isSuggestedStart } = data;
 
   const isRevealed = state === CellState.REVEALED;
   const isFlagged = state === CellState.FLAGGED;
@@ -57,6 +57,10 @@ export const Cell: React.FC<CellProps> = React.memo(({ data, onClick, onContextM
         else color = 'text-blue-800';
 
         return <span className={`text-[10px] md:text-xs ${color} z-10`}>{probPercent}%</span>;
+    }
+
+    if (isHidden && isSuggestedStart) {
+        return <Crosshair className="w-5 h-5 text-green-600 animate-pulse" />;
     }
 
     if (isFlagged) {

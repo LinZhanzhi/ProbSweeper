@@ -12,6 +12,7 @@ export interface CellData {
   state: CellState;
   neighborMines: number;
   probability?: number; // For the analyzer visualization
+  isSuggestedStart?: boolean;
 }
 
 export enum GameStatus {

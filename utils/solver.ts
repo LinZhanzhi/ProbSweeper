@@ -57,7 +57,7 @@ class BoardAdapter {
 }
 
 // A heuristic solver that acts as our "Analyzer"
-export const getNextBestMove = (board: CellData[][], totalMines: number = 0, playStyle: number = 1): SolverMove | null => {
+export const getNextBestMove = (board: CellData[][], totalMines: number = 0, playStyle: number = 1, onlyCertain: boolean = false): SolverMove | null => {
   const rows = board.length;
   const cols = board[0].length;
 
@@ -206,18 +206,22 @@ export const getNextBestMove = (board: CellData[][], totalMines: number = 0, pla
           }
 
           // If no safe moves, make the best guess
-          const bestCandidates = pe.getBestCandidates(0);
-          if (bestCandidates.length > 0) {
-              const action = bestCandidates[0];
-              return {
-                  row: action.y,
-                  col: action.x,
-                  action: 'reveal',
-                  reasoning: `Probability Engine: Best Guess (${(action.prob * 100).toFixed(1)}% Safe)`
-              };
+          if (!onlyCertain) {
+              const bestCandidates = pe.getBestCandidates(0);
+              if (bestCandidates.length > 0) {
+                  const action = bestCandidates[0];
+                  return {
+                      row: action.y,
+                      col: action.x,
+                      action: 'reveal',
+                      reasoning: `Probability Engine: Best Guess (${(action.prob * 100).toFixed(1)}% Safe)`
+                  };
+              }
           }
       }
   }
+
+  if (onlyCertain) return null;
 
   // 3. Fallback / Opening Move
   const allHidden: CellData[] = [];
@@ -247,9 +251,10 @@ export const getNextBestMove = (board: CellData[][], totalMines: number = 0, pla
   return null;
 };
 
-export const getBoardProbabilities = (board: CellData[][], totalMines: number): { row: number, col: number, probability: number }[] => {
+export const getBoardProbabilities = (board: CellData[][], totalMines: number, forceAnalysis: boolean = true): { row: number, col: number, probability: number }[] => {
     const results: { row: number, col: number, probability: number }[] = [];
     const boardAdapter = new BoardAdapter(board);
+
     const witnesses: TileAdapter[] = [];
     const witnessed: TileAdapter[] = [];
     const work = new Set<number>();
@@ -290,7 +295,7 @@ export const getBoardProbabilities = (board: CellData[][], totalMines: number): 
     }
 
     // Run engine
-    const options = { playStyle: 1, verbose: false, forceAnalysis: true };
+    const options = { playStyle: 1, verbose: false, forceAnalysis };
     const pe = new ProbabilityEngine(boardAdapter, witnesses, witnessed, squaresLeft, minesLeft, options);
 
     if (pe.validWeb) {

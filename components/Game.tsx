@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Board } from './Board';
 import { createBoard, revealCell, toggleFlag, checkWin, ensureSafeStart, chordCell } from '../utils/minesweeper';
 import { getNextBestMove, getBoardProbabilities } from '../utils/solver';
+import { generateNoGuessBoard } from '../utils/boardGenerator';
 import { PLAY_STYLE_FLAGS, PLAY_STYLE_NOFLAGS, PLAY_STYLE_EFFICIENCY } from '../utils/probabilityEngine';
 import { BoardConfig, CellData, GameStatus, CellState } from '../types';
-import { RefreshCw, Play, Brain, Settings, AlertTriangle, Sparkles, StopCircle, Microscope, Cog } from 'lucide-react';
+import { RefreshCw, Play, Brain, Settings, AlertTriangle, Sparkles, StopCircle, Microscope, Cog, ShieldCheck, Zap } from 'lucide-react';
 
 const PRESETS = {
   BEGINNER: { rows: 9, cols: 9, mines: 10 },
@@ -20,13 +21,24 @@ export const Game: React.FC = () => {
   const [minesLeft, setMinesLeft] = useState(PRESETS.BEGINNER.mines);
   const [time, setTime] = useState(0);
   const [isAutoMode, setIsAutoMode] = useState(false);
+  const [isFastAutoMode, setIsFastAutoMode] = useState(false);
+  const [isCertainMode, setIsCertainMode] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCustom, setShowCustom] = useState(false);
-  const [customConfig, setCustomConfig] = useState({ rows: 20, cols: 20, mines: 50 });
+  const [customConfig, setCustomConfig] = useState({ rows: 50, cols: 50, mines: 400 }); // Default 50x50
   const [lastHint, setLastHint] = useState<string | null>(null);
   const [analysisMode, setAnalysisMode] = useState(false);
   const [solverMode, setSolverMode] = useState<number>(PLAY_STYLE_FLAGS);
   const [showSolverSettings, setShowSolverSettings] = useState(false);
+  const [isNoGuessMode, setIsNoGuessMode] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState<string>("");
+  const [suggestedStart, setSuggestedStart] = useState<{r: number, c: number} | null>(null);
+
+  // New State for Game Setup
+  const [gameStarted, setGameStarted] = useState(false);
+  const [showGameSettings, setShowGameSettings] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<'BEGINNER' | 'INTERMEDIATE' | 'EXPERT' | 'CUSTOM'>('BEGINNER');
 
   const timerRef = useRef<number | null>(null);
 
@@ -41,22 +53,59 @@ export const Game: React.FC = () => {
       const p = probs.find(x => x.row === r && x.col === c);
       return {
         ...cell,
-        probability: p ? p.probability : undefined
+        probability: p ? p.probability : undefined,
+        isSuggestedStart: suggestedStart && suggestedStart.r === r && suggestedStart.c === c
       };
     }));
-  }, [board, analysisMode, config.mines, status]);
+  }, [board, analysisMode, config.mines, status, suggestedStart]);
+
+  // Pass suggestedStart to displayBoard even if analysisMode is off
+  const finalDisplayBoard = useMemo(() => {
+      return displayBoard.map((row, r) => row.map((cell, c) => ({
+          ...cell,
+          isSuggestedStart: suggestedStart && suggestedStart.r === r && suggestedStart.c === c
+      })));
+  }, [displayBoard, suggestedStart]);
 
   // Initialize game
-  const resetGame = useCallback((newConfig: BoardConfig = config) => {
-    const newBoard = createBoard(newConfig);
-    setBoard(newBoard);
+  const resetGame = useCallback(async (newConfig: BoardConfig = config) => {
+    setIsGenerating(true);
     setStatus(GameStatus.IDLE);
-    setMinesLeft(newConfig.mines);
     setTime(0);
     setIsAutoMode(false);
     setLastHint(null);
     if (timerRef.current) clearInterval(timerRef.current);
-  }, [config]);
+
+    // Small delay to allow UI to update (show loading state)
+    await new Promise(r => setTimeout(r, 10));
+
+    // Always create a standard board first (visual placeholder or actual start)
+    const newBoard = createBoard(newConfig);
+    setBoard(newBoard);
+    setMinesLeft(newConfig.mines);
+    setGameStarted(true);
+    setSuggestedStart(null);
+
+    if (isNoGuessMode) {
+        setIsGenerating(true);
+        setGenerationStatus("Initializing...");
+        // Generate No Guess board immediately
+        const result = await generateNoGuessBoard(newConfig, 10000, (status) => {
+            setGenerationStatus(status);
+        });
+        if (result) {
+            setBoard(result.board);
+            setSuggestedStart(result.start);
+        } else {
+            alert("Could not generate a No Guess board. Falling back to standard random board.");
+            // Keep the random board generated above
+        }
+        setIsGenerating(false);
+        setGenerationStatus("");
+    } else {
+        setIsGenerating(false);
+    }
+  }, [config, isNoGuessMode]);
 
   // Timer
   useEffect(() => {
@@ -74,9 +123,16 @@ export const Game: React.FC = () => {
   }, [status]);
 
   // Click Handlers
-  const handleCellClick = useCallback((r: number, c: number) => {
-    if (status === GameStatus.WON || status === GameStatus.LOST || isProcessing) return;
+  const handleCellClick = useCallback(async (r: number, c: number) => {
+    if (status === GameStatus.WON || status === GameStatus.LOST || isProcessing || isGenerating) return;
     if (board[r][c].state === CellState.FLAGGED) return;
+
+    // Enforce suggested start in No Guess mode
+    if (status === GameStatus.IDLE && isNoGuessMode && suggestedStart) {
+        if (r !== suggestedStart.r || c !== suggestedStart.c) {
+            return; // Ignore clicks elsewhere
+        }
+    }
 
     let currentBoard = board;
     let hitMine = false;
@@ -90,8 +146,15 @@ export const Game: React.FC = () => {
     } else {
       // Normal reveal
       if (status === GameStatus.IDLE) {
-        currentBoard = ensureSafeStart(currentBoard, r, c);
+        // Standard start logic (No Guess is pre-generated now)
+        if (!isNoGuessMode) {
+            currentBoard = ensureSafeStart(currentBoard, r, c);
+        }
+        // If No Guess mode, board is already generated and safe at (r,c) because of the check above
+
+        setStatus(GameStatus.PLAYING);
       }
+
       const result = revealCell(currentBoard, r, c);
       newBoard = result.board;
       hitMine = result.hitMine;
@@ -109,7 +172,7 @@ export const Game: React.FC = () => {
         setIsAutoMode(false);
       }
     }
-  }, [board, status, isProcessing]);
+  }, [board, status, isProcessing, isNoGuessMode]);
 
   const handleRightClick = useCallback((e: React.MouseEvent, r: number, c: number) => {
     e.preventDefault();
@@ -140,9 +203,9 @@ export const Game: React.FC = () => {
       setIsProcessing(true);
 
       // Delay for visual "keep up"
-      await new Promise(resolve => setTimeout(resolve, 600));
+      await new Promise(resolve => setTimeout(resolve, isFastAutoMode ? 100 : 600));
 
-      const move = getNextBestMove(board, config.mines, solverMode);
+      const move = getNextBestMove(board, config.mines, solverMode, isCertainMode);
 
       if (move) {
         if (move.action === 'reveal') {
@@ -169,21 +232,30 @@ export const Game: React.FC = () => {
     }
 
     return () => clearTimeout(timeout);
-  }, [isAutoMode, board, status, handleCellClick, config.mines]);
+  }, [isAutoMode, board, status, handleCellClick, config.mines, isFastAutoMode, isCertainMode, solverMode]);
 
   // Gemini Hint removed
 
 
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newConfig = {
-      rows: Math.min(50, Math.max(5, customConfig.rows)),
-      cols: Math.min(50, Math.max(5, customConfig.cols)),
-      mines: Math.min(Math.floor(customConfig.rows * customConfig.cols * 0.8), Math.max(1, customConfig.mines))
-    };
-    setConfig(newConfig);
-    resetGame(newConfig);
-    setShowCustom(false);
+    // This function is now deprecated/unused as logic moved to handleGenerateGame
+  };
+
+  const handleGenerateGame = () => {
+      let newConfig = PRESETS.BEGINNER;
+      if (selectedPreset === 'INTERMEDIATE') newConfig = PRESETS.INTERMEDIATE;
+      if (selectedPreset === 'EXPERT') newConfig = PRESETS.EXPERT;
+      if (selectedPreset === 'CUSTOM') {
+          newConfig = {
+            rows: Math.min(50, Math.max(5, customConfig.rows)),
+            cols: Math.min(50, Math.max(5, customConfig.cols)),
+            mines: Math.min(Math.floor(customConfig.rows * customConfig.cols * 0.8), Math.max(1, customConfig.mines))
+          };
+      }
+      setConfig(newConfig);
+      resetGame(newConfig);
+      setShowGameSettings(false);
   };
 
   return (
@@ -213,39 +285,86 @@ export const Game: React.FC = () => {
         </div>
 
         {/* Controls */}
-        <div className="flex flex-wrap gap-2 justify-center bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
-          <button onClick={() => resetGame()} className="btn-primary flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded font-semibold transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95">
-            <RefreshCw size={18} /> New Game
+        <div className="flex flex-wrap gap-2 justify-center bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 relative">
+          <button onClick={handleGenerateGame} disabled={isGenerating} className="btn-primary flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-semibold transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-wait">
+            <RefreshCw size={18} className={isGenerating ? "animate-spin" : ""} /> {isGenerating ? "Generating..." : "Generate Game"}
           </button>
 
-          <div className="h-8 w-[1px] bg-slate-600 mx-2 self-center hidden md:block"></div>
-
-          <button onClick={() => { setConfig(PRESETS.BEGINNER); resetGame(PRESETS.BEGINNER); }} className={`px-3 py-1 rounded transition-colors ${config.rows === 9 ? 'bg-slate-600 text-white' : 'hover:bg-slate-700 text-slate-300'}`}>Easy</button>
-          <button onClick={() => { setConfig(PRESETS.INTERMEDIATE); resetGame(PRESETS.INTERMEDIATE); }} className={`px-3 py-1 rounded transition-colors ${config.rows === 16 && config.cols === 16 ? 'bg-slate-600 text-white' : 'hover:bg-slate-700 text-slate-300'}`}>Medium</button>
-          <button onClick={() => { setConfig(PRESETS.EXPERT); resetGame(PRESETS.EXPERT); }} className={`px-3 py-1 rounded transition-colors ${config.rows === 16 && config.cols === 30 ? 'bg-slate-600 text-white' : 'hover:bg-slate-700 text-slate-300'}`}>Hard</button>
-          <button onClick={() => setShowCustom(!showCustom)} className={`px-3 py-1 rounded transition-colors flex items-center gap-1 ${showCustom ? 'bg-slate-600 text-white' : 'hover:bg-slate-700 text-slate-300'}`}>
-            <Settings size={14} /> Custom
+          <button
+            onClick={() => setShowGameSettings(!showGameSettings)}
+            className={`px-3 py-2 rounded transition-colors flex items-center gap-1 ${showGameSettings ? 'bg-slate-600 text-white' : 'hover:bg-slate-700 text-slate-300'}`}
+          >
+            <Settings size={20} />
           </button>
+
+          {/* Game Settings Modal/Popover */}
+          {showGameSettings && (
+            <div className="absolute top-full mt-2 bg-slate-800 p-6 rounded-xl border border-slate-600 shadow-2xl z-50 w-80 animate-in slide-in-from-top-2">
+                <h3 className="font-bold text-lg mb-4 text-slate-200 border-b border-slate-700 pb-2">Game Settings</h3>
+
+                <div className="mb-4">
+                    <label className="block text-sm font-semibold text-slate-400 mb-2">Difficulty</label>
+                    <div className="flex flex-col gap-2">
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
+                            <input type="radio" name="difficulty" checked={selectedPreset === 'BEGINNER'} onChange={() => setSelectedPreset('BEGINNER')} className="accent-blue-500" />
+                            <span>Easy (9x9, 10 mines)</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
+                            <input type="radio" name="difficulty" checked={selectedPreset === 'INTERMEDIATE'} onChange={() => setSelectedPreset('INTERMEDIATE')} className="accent-blue-500" />
+                            <span>Medium (16x16, 40 mines)</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
+                            <input type="radio" name="difficulty" checked={selectedPreset === 'EXPERT'} onChange={() => setSelectedPreset('EXPERT')} className="accent-blue-500" />
+                            <span>Hard (16x30, 99 mines)</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
+                            <input type="radio" name="difficulty" checked={selectedPreset === 'CUSTOM'} onChange={() => setSelectedPreset('CUSTOM')} className="accent-blue-500" />
+                            <span>Custom</span>
+                        </label>
+                    </div>
+                </div>
+
+                {selectedPreset === 'CUSTOM' && (
+                    <div className="mb-4 p-3 bg-slate-900/50 rounded border border-slate-700">
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                            <div>
+                                <label className="text-[10px] text-slate-400 block">Width</label>
+                                <input type="number" value={customConfig.cols} onChange={e => setCustomConfig({...customConfig, cols: parseInt(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-1 py-1 w-full text-center text-sm" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] text-slate-400 block">Height</label>
+                                <input type="number" value={customConfig.rows} onChange={e => setCustomConfig({...customConfig, rows: parseInt(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-1 py-1 w-full text-center text-sm" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] text-slate-400 block">Mines</label>
+                                <input type="number" value={customConfig.mines} onChange={e => setCustomConfig({...customConfig, mines: parseInt(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-1 py-1 w-full text-center text-sm" />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="mb-4">
+                    <label className="block text-sm font-semibold text-slate-400 mb-2">Game Mode</label>
+                    <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
+                            <input type="radio" name="mode" checked={!isNoGuessMode} onChange={() => setIsNoGuessMode(false)} className="accent-blue-500" />
+                            <span>Classic</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
+                            <input type="radio" name="mode" checked={isNoGuessMode} onChange={() => setIsNoGuessMode(true)} className="accent-green-500" />
+                            <span className="flex items-center gap-1"><ShieldCheck size={14} className="text-green-400"/> No Guess</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button onClick={handleGenerateGame} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded font-bold shadow-lg">
+                    Generate Board
+                </button>
+            </div>
+          )}
         </div>
 
-        {/* Custom Config Panel */}
-        {showCustom && (
-          <form onSubmit={handleCustomSubmit} className="flex flex-wrap gap-4 justify-center items-end bg-slate-800 p-4 rounded-xl border border-slate-600 animate-in slide-in-from-top-2">
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Width</label>
-              <input type="number" value={customConfig.cols} onChange={e => setCustomConfig({...customConfig, cols: parseInt(e.target.value)})} className="bg-slate-900 border border-slate-600 rounded px-2 py-1 w-20 text-center" />
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Height</label>
-              <input type="number" value={customConfig.rows} onChange={e => setCustomConfig({...customConfig, rows: parseInt(e.target.value)})} className="bg-slate-900 border border-slate-600 rounded px-2 py-1 w-20 text-center" />
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Mines</label>
-              <input type="number" value={customConfig.mines} onChange={e => setCustomConfig({...customConfig, mines: parseInt(e.target.value)})} className="bg-slate-900 border border-slate-600 rounded px-2 py-1 w-20 text-center" />
-            </div>
-            <button type="submit" className="bg-green-600 hover:bg-green-500 text-white px-4 py-1.5 rounded h-fit">Apply</button>
-          </form>
-        )}
+        {/* Custom Config Panel Removed (Moved to Modal) */}
 
         {/* AI & Auto Tools */}
         <div className="flex flex-col items-center gap-3">
@@ -306,6 +425,24 @@ export const Game: React.FC = () => {
                     Efficiency
                   </button>
                </div>
+
+               <div className="w-px h-6 bg-slate-600 mx-2"></div>
+
+               <button
+                 onClick={() => setIsFastAutoMode(!isFastAutoMode)}
+                 className={`flex items-center gap-2 px-3 py-1 rounded text-sm transition-colors ${isFastAutoMode ? 'bg-yellow-600 text-white shadow-lg shadow-yellow-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                 title="Reduce delay between auto-moves to 0.1s"
+               >
+                 <Zap size={14} className={isFastAutoMode ? "fill-white" : ""} /> Fast Mode
+               </button>
+
+               <button
+                 onClick={() => setIsCertainMode(!isCertainMode)}
+                 className={`flex items-center gap-2 px-3 py-1 rounded text-sm transition-colors ${isCertainMode ? 'bg-green-600 text-white shadow-lg shadow-green-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                 title="Only make 100% safe moves or flag 100% mines"
+               >
+                 <ShieldCheck size={14} className={isCertainMode ? "fill-white" : ""} /> Certain Only
+               </button>
             </div>
           )}
         </div>
@@ -319,13 +456,27 @@ export const Game: React.FC = () => {
         )}
 
         {/* The Board */}
-        <div className="w-full overflow-x-auto pb-8 text-center">
-           <Board
-             board={displayBoard}
-             onCellClick={handleCellClick}
-             onCellRightClick={handleRightClick}
-             gameStatus={status}
-           />
+        <div className="w-full overflow-x-auto pb-8 text-center min-h-[300px] flex items-center justify-center relative">
+           {isGenerating && (
+               <div className="absolute inset-0 bg-slate-900/80 z-50 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm">
+                   <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                   <p className="text-blue-400 font-bold text-lg animate-pulse">Generating No Guess Board...</p>
+                   <p className="text-slate-400 text-sm mt-2">{generationStatus}</p>
+               </div>
+           )}
+           {gameStarted ? (
+               <Board
+                 board={finalDisplayBoard}
+                 onCellClick={handleCellClick}
+                 onCellRightClick={handleRightClick}
+                 gameStatus={status}
+               />
+           ) : (
+               <div className="text-slate-500 flex flex-col items-center gap-4">
+                   <div className="w-16 h-16 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin opacity-20"></div>
+                   <p>Click "Generate Game" to start</p>
+               </div>
+           )}
         </div>
 
         {/* Game Over Modal */}
