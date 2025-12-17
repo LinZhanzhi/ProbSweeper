@@ -396,6 +396,7 @@ export const Game: React.FC = () => {
           <div className="flex items-center gap-3">
              {/* Face Icon Status */}
              <div
+                id="game-status-indicator"
                 className="w-12 h-12 bg-yellow-400 rounded-full border-4 border-yellow-600 flex items-center justify-center shadow-lg"
              >
                 {status === GameStatus.WON ? (
@@ -410,6 +411,8 @@ export const Game: React.FC = () => {
              {/* Undo Button (Only visible when lost) */}
              {status === GameStatus.LOST && lastSafeBoard && (
                  <button
+                    id="undo-button"
+                    name="undo-button"
                     onClick={handleUndo}
                     className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg border border-slate-500 text-yellow-400 transition-colors"
                     title="Undo Last Move"
@@ -431,24 +434,27 @@ export const Game: React.FC = () => {
 
         {/* Controls */}
         <div className="flex flex-wrap gap-2 justify-center bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 relative">
-          <button onClick={handleGenerateGame} disabled={isGenerating} className="btn-primary flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-semibold transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-wait">
-            <RefreshCw size={18} className={isGenerating ? "animate-spin" : ""} /> {isGenerating ? "Generating..." : "Generate Game"}
-          </button>
+          <div className="flex items-stretch">
+            <button id="new-game-button" name="new-game-button" onClick={handleGenerateGame} disabled={isGenerating} className="btn-primary flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded-l-lg font-semibold transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-wait">
+                <RefreshCw size={18} className={isGenerating ? "animate-spin" : ""} /> {isGenerating ? "Generating..." : "New Game"}
+            </button>
+            <button
+                id="game-settings-button"
+                name="game-settings-button"
+                onClick={() => setShowGameSettings(!showGameSettings)}
+                className={`px-3 py-2 rounded-r-lg transition-colors flex items-center gap-1 shadow-lg ${showGameSettings ? 'bg-slate-600 text-white' : 'bg-blue-600 hover:bg-blue-500 text-slate-100 border-l border-blue-700'}`}
+            >
+                <Settings size={20} />
+            </button>
+          </div>
 
-          <button onClick={handleReplay} disabled={isGenerating || !gameStarted} className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded font-semibold transition-all shadow-lg hover:shadow-slate-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" title="Replay same board">
-            <RotateCcw size={18} />
-          </button>
-
-          <button
-            onClick={() => setShowGameSettings(!showGameSettings)}
-            className={`px-3 py-2 rounded transition-colors flex items-center gap-1 ${showGameSettings ? 'bg-slate-600 text-white' : 'hover:bg-slate-700 text-slate-300'}`}
-          >
-            <Settings size={20} />
+          <button id="replay-button" name="replay-button" onClick={handleReplay} disabled={isGenerating || !gameStarted} className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded font-semibold transition-all shadow-lg hover:shadow-slate-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed" title="Replay same board">
+            <RotateCcw size={18} /> Replay
           </button>
 
           {/* Keyboard Shortcuts Info */}
           <div className="relative group">
-            <button className="px-3 py-2 rounded transition-colors flex items-center gap-1 hover:bg-slate-700 text-slate-300">
+            <button id="keyboard-shortcuts-button" name="keyboard-shortcuts-button" className="px-3 py-2 rounded transition-colors flex items-center gap-1 hover:bg-slate-700 text-slate-300">
               <Keyboard size={20} />
             </button>
             <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-64 bg-slate-800 p-4 rounded-xl border border-slate-600 shadow-2xl z-50 hidden group-hover:block animate-in fade-in slide-in-from-top-2 pointer-events-none">
@@ -474,19 +480,19 @@ export const Game: React.FC = () => {
                     <label className="block text-sm font-semibold text-slate-400 mb-2">Difficulty</label>
                     <div className="flex flex-col gap-2">
                         <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
-                            <input type="radio" name="difficulty" checked={selectedPreset === 'BEGINNER'} onChange={() => setSelectedPreset('BEGINNER')} className="accent-blue-500" />
+                            <input id="difficulty-beginner" type="radio" name="difficulty" checked={selectedPreset === 'BEGINNER'} onChange={() => setSelectedPreset('BEGINNER')} className="accent-blue-500" />
                             <span>Easy (9x9, 10 mines)</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
-                            <input type="radio" name="difficulty" checked={selectedPreset === 'INTERMEDIATE'} onChange={() => setSelectedPreset('INTERMEDIATE')} className="accent-blue-500" />
+                            <input id="difficulty-intermediate" type="radio" name="difficulty" checked={selectedPreset === 'INTERMEDIATE'} onChange={() => setSelectedPreset('INTERMEDIATE')} className="accent-blue-500" />
                             <span>Medium (16x16, 40 mines)</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
-                            <input type="radio" name="difficulty" checked={selectedPreset === 'EXPERT'} onChange={() => setSelectedPreset('EXPERT')} className="accent-blue-500" />
+                            <input id="difficulty-expert" type="radio" name="difficulty" checked={selectedPreset === 'EXPERT'} onChange={() => setSelectedPreset('EXPERT')} className="accent-blue-500" />
                             <span>Hard (16x30, 99 mines)</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
-                            <input type="radio" name="difficulty" checked={selectedPreset === 'CUSTOM'} onChange={() => setSelectedPreset('CUSTOM')} className="accent-blue-500" />
+                            <input id="difficulty-custom" type="radio" name="difficulty" checked={selectedPreset === 'CUSTOM'} onChange={() => setSelectedPreset('CUSTOM')} className="accent-blue-500" />
                             <span>Custom</span>
                         </label>
                     </div>
@@ -497,15 +503,15 @@ export const Game: React.FC = () => {
                         <div className="grid grid-cols-3 gap-2 text-center">
                             <div>
                                 <label className="text-[10px] text-slate-400 block">Width</label>
-                                <input type="number" value={customConfig.cols} onChange={e => setCustomConfig({...customConfig, cols: parseInt(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-1 py-1 w-full text-center text-sm" />
+                                <input id="custom-width" type="number" value={customConfig.cols} onChange={e => setCustomConfig({...customConfig, cols: parseInt(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-1 py-1 w-full text-center text-sm" />
                             </div>
                             <div>
                                 <label className="text-[10px] text-slate-400 block">Height</label>
-                                <input type="number" value={customConfig.rows} onChange={e => setCustomConfig({...customConfig, rows: parseInt(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-1 py-1 w-full text-center text-sm" />
+                                <input id="custom-height" type="number" value={customConfig.rows} onChange={e => setCustomConfig({...customConfig, rows: parseInt(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-1 py-1 w-full text-center text-sm" />
                             </div>
                             <div>
                                 <label className="text-[10px] text-slate-400 block">Mines</label>
-                                <input type="number" value={customConfig.mines} onChange={e => setCustomConfig({...customConfig, mines: parseInt(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-1 py-1 w-full text-center text-sm" />
+                                <input id="custom-mines" type="number" value={customConfig.mines} onChange={e => setCustomConfig({...customConfig, mines: parseInt(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-1 py-1 w-full text-center text-sm" />
                             </div>
                         </div>
                     </div>
@@ -515,17 +521,17 @@ export const Game: React.FC = () => {
                     <label className="block text-sm font-semibold text-slate-400 mb-2">Game Mode</label>
                     <div className="flex gap-4">
                         <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
-                            <input type="radio" name="mode" checked={!isNoGuessMode} onChange={() => setIsNoGuessMode(false)} className="accent-blue-500" />
+                            <input id="mode-classic" type="radio" name="mode" checked={!isNoGuessMode} onChange={() => setIsNoGuessMode(false)} className="accent-blue-500" />
                             <span>Classic</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded">
-                            <input type="radio" name="mode" checked={isNoGuessMode} onChange={() => setIsNoGuessMode(true)} className="accent-green-500" />
+                            <input id="mode-noguess" type="radio" name="mode" checked={isNoGuessMode} onChange={() => setIsNoGuessMode(true)} className="accent-green-500" />
                             <span className="flex items-center gap-1"><ShieldCheck size={14} className="text-green-400"/> No Guess</span>
                         </label>
                     </div>
                 </div>
 
-                <button onClick={handleGenerateGame} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded font-bold shadow-lg">
+                <button id="modal-generate-button" name="modal-generate-button" onClick={handleGenerateGame} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded font-bold shadow-lg">
                     Generate Board
                 </button>
             </div>
@@ -537,8 +543,10 @@ export const Game: React.FC = () => {
         {/* AI & Auto Tools */}
         <div className="flex flex-col items-center gap-3">
           <div className="flex flex-wrap gap-3 justify-center items-center">
-             <div className="flex items-center gap-1">
+             <div className="flex items-stretch">
                <button
+                 id="auto-finish-button"
+                 name="auto-finish-button"
                  onClick={() => setIsAutoMode(!isAutoMode)}
                  disabled={status === GameStatus.WON || status === GameStatus.LOST}
                  className={`flex items-center gap-2 px-6 py-3 rounded-l-lg font-bold transition-all shadow-xl ${isAutoMode
@@ -549,8 +557,10 @@ export const Game: React.FC = () => {
                  {isAutoMode ? 'Stop Auto' : 'Auto Finish'}
                </button>
                <button
+                  id="solver-settings-button"
+                  name="solver-settings-button"
                   onClick={() => setShowSolverSettings(!showSolverSettings)}
-                  className="bg-purple-700 hover:bg-purple-600 px-3 py-3 rounded-r-lg shadow-xl border-l border-purple-800 transition-colors"
+                  className="bg-purple-600 hover:bg-purple-500 px-3 py-3 rounded-r-lg shadow-xl border-l border-purple-700 transition-colors"
                   title="Solver Settings"
                >
                   <Cog size={24} />
@@ -558,6 +568,8 @@ export const Game: React.FC = () => {
              </div>
 
              <button
+               id="analysis-mode-button"
+               name="analysis-mode-button"
                onClick={() => setAnalysisMode(!analysisMode)}
                disabled={status === GameStatus.WON || status === GameStatus.LOST}
                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all shadow-xl ${analysisMode
@@ -575,18 +587,24 @@ export const Game: React.FC = () => {
                <span className="text-slate-300 font-semibold">Solver Style:</span>
                <div className="flex gap-2">
                   <button
+                    id="solver-style-flags"
+                    name="solver-style-flags"
                     onClick={() => setSolverMode(PLAY_STYLE_FLAGS)}
                     className={`px-3 py-1 rounded text-sm ${solverMode === PLAY_STYLE_FLAGS ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                   >
                     Flags
                   </button>
                   <button
+                    id="solver-style-noflags"
+                    name="solver-style-noflags"
                     onClick={() => setSolverMode(PLAY_STYLE_NOFLAGS)}
                     className={`px-3 py-1 rounded text-sm ${solverMode === PLAY_STYLE_NOFLAGS ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                   >
                     No Flags
                   </button>
                   <button
+                    id="solver-style-efficiency"
+                    name="solver-style-efficiency"
                     onClick={() => setSolverMode(PLAY_STYLE_EFFICIENCY)}
                     className={`px-3 py-1 rounded text-sm ${solverMode === PLAY_STYLE_EFFICIENCY ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                   >
@@ -597,6 +615,8 @@ export const Game: React.FC = () => {
                <div className="w-px h-6 bg-slate-600 mx-2"></div>
 
                <button
+                 id="solver-fast-mode"
+                 name="solver-fast-mode"
                  onClick={() => setIsFastAutoMode(!isFastAutoMode)}
                  className={`flex items-center gap-2 px-3 py-1 rounded text-sm transition-colors ${isFastAutoMode ? 'bg-yellow-600 text-white shadow-lg shadow-yellow-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                  title="Reduce delay between auto-moves to 0.05s"
@@ -605,6 +625,8 @@ export const Game: React.FC = () => {
                </button>
 
                <button
+                 id="solver-certain-only"
+                 name="solver-certain-only"
                  onClick={() => setIsCertainMode(!isCertainMode)}
                  className={`flex items-center gap-2 px-3 py-1 rounded text-sm transition-colors ${isCertainMode ? 'bg-green-600 text-white shadow-lg shadow-green-500/20' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                  title="Only make 100% safe moves or flag 100% mines"
@@ -663,6 +685,8 @@ export const Game: React.FC = () => {
                  </p>
                  <div className="flex gap-4 justify-center">
                      <button
+                       id="confirmation-modal-confirm"
+                       name="confirmation-modal-confirm"
                        onClick={() => {
                          if (confirmationModal.type === 'replay') handleReplay();
                          else handleGenerateGame();
@@ -673,6 +697,8 @@ export const Game: React.FC = () => {
                        Confirm
                      </button>
                      <button
+                       id="confirmation-modal-cancel"
+                       name="confirmation-modal-cancel"
                        onClick={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
                        className={`px-6 py-2 rounded-lg font-bold transition-all ${confirmationModal.focus === 'cancel' ? 'bg-slate-600 ring-2 ring-slate-400 scale-105' : 'bg-slate-700 text-slate-300'}`}
                      >
