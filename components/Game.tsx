@@ -392,14 +392,14 @@ export const Game: React.FC = () => {
               // Zoom In
               setIsZoomedOut(false);
               setZoomLevel(1);
-              
+
               // Restore scroll position to center hovered cell
               if (hoveredCell && boardContainerRef.current) {
                   const container = boardContainerRef.current;
                   // Calculate target position (center of cell)
                   const targetY = hoveredCell.r * CELL_SIZE + CELL_SIZE / 2;
                   const targetX = hoveredCell.c * CELL_SIZE + CELL_SIZE / 2;
-                  
+
                   // Calculate scroll position to center the target
                   const scrollTop = targetY - container.clientHeight / 2;
                   const scrollLeft = targetX - container.clientWidth / 2;
@@ -416,18 +416,21 @@ export const Game: React.FC = () => {
                   // Available space inside padding (p-8 = 32px * 2 = 64px)
                   const availableWidth = container.clientWidth - 64;
                   const availableHeight = container.clientHeight - 64;
-                  
-                  const boardWidth = config.cols * CELL_SIZE;
-                  const boardHeight = config.rows * CELL_SIZE;
-                  
+
+const boardWidth = config.cols * CELL_SIZE + 40;
+                  const boardHeight = config.rows * CELL_SIZE + 40;
+
                   const scaleX = availableWidth / boardWidth;
                   const scaleY = availableHeight / boardHeight;
-                  
+
                   // Use the smaller scale to fit both dimensions, max 1
                   const newScale = Math.min(scaleX, scaleY, 1);
-                  
+
                   setZoomLevel(newScale);
                   setIsZoomedOut(true);
+
+                  // Reset scroll to top-left so the centered board is visible
+                  container.scrollTo({ top: 0, left: 0, behavior: 'auto' });
               }
           }
       }
@@ -724,16 +727,19 @@ export const Game: React.FC = () => {
       {/* Scrollable Board Section */}
       <div className="flex-1 w-full flex items-center justify-center bg-slate-900 p-4 min-h-0 overflow-hidden">
         <div ref={boardContainerRef} className="w-[85%] h-[85%] overflow-auto bg-slate-950 relative flex p-8 border-4 border-slate-800 rounded-xl shadow-2xl">
-          <div 
-            className="min-w-min min-h-min m-auto transition-transform duration-200 ease-out origin-top-left"
+          <div
+            className="m-auto relative transition-all duration-200 ease-out"
             style={{
-                transform: isZoomedOut ? `scale(${zoomLevel})` : 'none',
-                width: isZoomedOut ? `${config.cols * CELL_SIZE}px` : 'auto',
-                height: isZoomedOut ? `${config.rows * CELL_SIZE}px` : 'auto',
-                // When zoomed out, we force the container size to match the board so transform works predictably
-                // But we need to ensure it's centered if smaller than viewport. m-auto handles that if parent is flex.
+                width: isZoomedOut ? `${(config.cols * CELL_SIZE + 40) * zoomLevel}px` : 'auto',
+                height: isZoomedOut ? `${(config.rows * CELL_SIZE + 40) * zoomLevel}px` : 'auto',
             }}
           >
+            <div
+                className="origin-top-left transition-transform duration-200 ease-out inline-block"
+                style={{
+                    transform: isZoomedOut ? `scale(${zoomLevel})` : 'none',
+                }}
+            >
              {isGenerating && (
                  <div className="absolute inset-0 bg-slate-900/80 z-50 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm">
                      <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -756,10 +762,10 @@ export const Game: React.FC = () => {
                      <p>Click "Generate Game" to start</p>
                  </div>
              )}
+            </div>
           </div>
         </div>
       </div>
-
         {/* Confirmation Modal */}
         {confirmationModal.isOpen && (
            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-in fade-in duration-200">
