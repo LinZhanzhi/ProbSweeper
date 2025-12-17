@@ -43,6 +43,9 @@ export const Game: React.FC = () => {
   }>({ isOpen: false, type: 'newGame', focus: 'confirm' });
   const [lastSafeBoard, setLastSafeBoard] = useState<CellData[][] | null>(null);
   const [gameOverFocus, setGameOverFocus] = useState<'undo' | 'replay' | 'newGame'>('undo');
+  const [isZoomedOut, setIsZoomedOut] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const CELL_SIZE = 40; // Assumed cell size in pixels
 
   // New State for Game Setup
   const [gameStarted, setGameStarted] = useState(false);
@@ -384,6 +387,49 @@ export const Game: React.FC = () => {
         setConfirmationModal({ isOpen: true, type: 'newGame', focus: 'confirm' });
       } else if (e.key.toLowerCase() === 'h') {
         setAnalysisMode(prev => !prev);
+      } else if (e.key.toLowerCase() === 'q') {
+          if (isZoomedOut) {
+              // Zoom In
+              setIsZoomedOut(false);
+              setZoomLevel(1);
+              
+              // Restore scroll position to center hovered cell
+              if (hoveredCell && boardContainerRef.current) {
+                  const container = boardContainerRef.current;
+                  // Calculate target position (center of cell)
+                  const targetY = hoveredCell.r * CELL_SIZE + CELL_SIZE / 2;
+                  const targetX = hoveredCell.c * CELL_SIZE + CELL_SIZE / 2;
+                  
+                  // Calculate scroll position to center the target
+                  const scrollTop = targetY - container.clientHeight / 2;
+                  const scrollLeft = targetX - container.clientWidth / 2;
+
+                  // Use setTimeout to allow render to update layout first
+                  setTimeout(() => {
+                      container.scrollTo({ top: scrollTop, left: scrollLeft, behavior: 'auto' });
+                  }, 0);
+              }
+          } else {
+              // Zoom Out
+              if (boardContainerRef.current) {
+                  const container = boardContainerRef.current;
+                  // Available space inside padding (p-8 = 32px * 2 = 64px)
+                  const availableWidth = container.clientWidth - 64;
+                  const availableHeight = container.clientHeight - 64;
+                  
+                  const boardWidth = config.cols * CELL_SIZE;
+                  const boardHeight = config.rows * CELL_SIZE;
+                  
+                  const scaleX = availableWidth / boardWidth;
+                  const scaleY = availableHeight / boardHeight;
+                  
+                  // Use the smaller scale to fit both dimensions, max 1
+                  const newScale = Math.min(scaleX, scaleY, 1);
+                  
+                  setZoomLevel(newScale);
+                  setIsZoomedOut(true);
+              }
+          }
       }
 
       // Scroll shortcuts (WASD)
@@ -409,7 +455,7 @@ export const Game: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [hoveredCell, confirmationModal, handleRightClick, handleCellClick, handleReplay, handleGenerateGame, status, gameOverFocus, lastSafeBoard, resetGame]); // Dependencies might cause re-binds, but acceptable here
+  }, [hoveredCell, confirmationModal, handleRightClick, handleCellClick, handleReplay, handleGenerateGame, status, gameOverFocus, lastSafeBoard, resetGame, isZoomedOut, config, CELL_SIZE]); // Dependencies might cause re-binds, but acceptable here
   return (
     <div className="h-screen w-full bg-slate-900 text-gray-100 font-sans flex flex-col overflow-hidden">
       {/* Fixed Header Section */}
@@ -449,6 +495,7 @@ export const Game: React.FC = () => {
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">R</span> <span>Replay Game</span>
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">T</span> <span>New Game</span>
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">H</span> <span>Toggle Analysis</span>
+                    <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">Q</span> <span>Toggle Zoom</span>
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">W, A, S, D</span> <span>Scroll Board</span>
                     <div className="col-span-2 h-px bg-slate-700 my-1"></div>
                     <span className="font-mono text-slate-200 bg-slate-700 px-1 rounded text-xs">Tab</span> <span>Switch Focus</span>
@@ -677,7 +724,16 @@ export const Game: React.FC = () => {
       {/* Scrollable Board Section */}
       <div className="flex-1 w-full flex items-center justify-center bg-slate-900 p-4 min-h-0 overflow-hidden">
         <div ref={boardContainerRef} className="w-[85%] h-[85%] overflow-auto bg-slate-950 relative flex p-8 border-4 border-slate-800 rounded-xl shadow-2xl">
-          <div className="min-w-min min-h-min m-auto">
+          <div 
+            className="min-w-min min-h-min m-auto transition-transform duration-200 ease-out origin-top-left"
+            style={{
+                transform: isZoomedOut ? `scale(${zoomLevel})` : 'none',
+                width: isZoomedOut ? `${config.cols * CELL_SIZE}px` : 'auto',
+                height: isZoomedOut ? `${config.rows * CELL_SIZE}px` : 'auto',
+                // When zoomed out, we force the container size to match the board so transform works predictably
+                // But we need to ensure it's centered if smaller than viewport. m-auto handles that if parent is flex.
+            }}
+          >
              {isGenerating && (
                  <div className="absolute inset-0 bg-slate-900/80 z-50 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm">
                      <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
