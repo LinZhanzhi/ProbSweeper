@@ -62,6 +62,43 @@ If you want to convert this to a full Vite project:
 3.  Copy the `src` files into the new project.
 4.  Ensure `API_KEY` is set in your `.env` file for Gemini features.
 
+## Building the Desktop App (Electron)
+
+This project includes an Electron wrapper to package the game as a standalone desktop application (`.exe` installer for Windows).
+
+### Prerequisites
+*   Ensure you have installed all dependencies:
+    ```bash
+    npm install
+    ```
+
+### Build Command
+To build the Windows installer:
+```bash
+npm run dist
+```
+
+This command will:
+1.  Build the React web application (`npm run build`).
+2.  Package the application using `electron-builder`.
+3.  Output the installer and executable in the `release/` directory.
+
+### Development Mode
+To run the Electron app in development mode (with hot-reloading):
+
+1.  Start the Vite dev server in one terminal:
+    ```bash
+    npm run dev
+    ```
+2.  Start Electron in a second terminal:
+    ```bash
+    # PowerShell
+    $env:NODE_ENV="development"; npm run electron:dev
+
+    # Bash
+    NODE_ENV=development npm run electron:dev
+    ```
+
 ## Environment Variables
 
 To use the Gemini Hint feature, you must have a Google Gemini API Key.
