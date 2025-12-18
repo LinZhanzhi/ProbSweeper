@@ -271,11 +271,11 @@ export const Game: React.FC = () => {
       if (isLightSpeedMode) {
           // Batch processing loop
           // Deep copy for safety if we are mutating cells
-          let currentBoard = JSON.parse(JSON.stringify(board)); 
+          let currentBoard = JSON.parse(JSON.stringify(board));
           let movesMade = 0;
           let gameStatus = status;
           let currentMinesLeft = minesLeft;
-          
+
           // Safety break to prevent infinite loops
           const MAX_MOVES = 2500; // Enough for 50x50 board
 
@@ -304,27 +304,27 @@ export const Game: React.FC = () => {
                   // Flag
                   currentBoard = toggleFlag(currentBoard, move.row, move.col);
               }
-              
+
               if (checkWin(currentBoard)) {
                   gameStatus = GameStatus.WON;
                   break;
               }
-              
+
               movesMade++;
-              
+
               // Yield every 50 moves to prevent total UI freeze on huge boards
               if (movesMade % 50 === 0) {
                   await new Promise(r => setTimeout(r, 0));
               }
           }
-          
+
           setBoard(currentBoard);
           setStatus(gameStatus);
-          
+
           // Update mines left
           const flaggedCount = currentBoard.flat().filter((c: CellData) => c.state === CellState.FLAGGED).length;
           setMinesLeft(config.mines - flaggedCount);
-          
+
           if (gameStatus !== GameStatus.PLAYING) {
               setIsAutoMode(false);
           } else if (movesMade === 0) {
