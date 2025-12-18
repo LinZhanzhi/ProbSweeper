@@ -55,7 +55,6 @@ export const Game: React.FC = () => {
     isFastAutoMode, setIsFastAutoMode,
     isLightSpeedMode, setIsLightSpeedMode,
     isCertainMode, setIsCertainMode,
-    solverMode, setSolverMode,
     isProcessing,
     lastHint, setLastHint,
     analysisMode, setAnalysisMode
@@ -252,8 +251,6 @@ export const Game: React.FC = () => {
         setShowSolverSettings={setShowSolverSettings}
         analysisMode={analysisMode}
         setAnalysisMode={setAnalysisMode}
-        solverMode={solverMode}
-        setSolverMode={setSolverMode}
         isFastAutoMode={isFastAutoMode}
         setIsFastAutoMode={setIsFastAutoMode}
         isLightSpeedMode={isLightSpeedMode}

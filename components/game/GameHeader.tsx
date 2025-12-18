@@ -1,7 +1,7 @@
 import React from 'react';
 import { RefreshCw, Settings, RotateCcw, Camera, Play, StopCircle, Cog, Microscope, Zap, Rocket, ShieldCheck, Brain, Smile, Frown, Glasses } from 'lucide-react';
 import { GameStatus, CellData } from '../../types';
-import { PLAY_STYLE_FLAGS, PLAY_STYLE_NOFLAGS, PLAY_STYLE_EFFICIENCY } from '../../utils/probabilityEngine';
+import { PLAY_STYLE_FLAGS } from '../../utils/probabilityEngine';
 import { SettingsModal } from '../modals/SettingsModal';
 import { ShortcutsModal } from '../modals/ShortcutsModal';
 
@@ -25,8 +25,6 @@ interface GameHeaderProps {
   setShowSolverSettings: (show: boolean) => void;
   analysisMode: boolean;
   setAnalysisMode: (analysis: boolean) => void;
-  solverMode: number;
-  setSolverMode: (mode: number) => void;
   isFastAutoMode: boolean;
   setIsFastAutoMode: (fast: boolean) => void;
   isLightSpeedMode: boolean;
@@ -47,7 +45,7 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
   handleReplay, gameStarted, setIsExporting, isExporting,
   status, lastSafeBoard, handleUndo, minesLeft, time,
   isAutoMode, setIsAutoMode, showSolverSettings, setShowSolverSettings,
-  analysisMode, setAnalysisMode, solverMode, setSolverMode,
+  analysisMode, setAnalysisMode,
   isFastAutoMode, setIsFastAutoMode, isLightSpeedMode, setIsLightSpeedMode,
   isCertainMode, setIsCertainMode, lastHint,
   selectedPreset, setSelectedPreset, customConfig, setCustomConfig,
@@ -180,36 +178,6 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
           {/* Solver Settings Panel */}
           {showSolverSettings && (
             <div className="bg-slate-800 p-4 rounded-xl border border-slate-600 animate-in slide-in-from-top-2 flex gap-4 items-center">
-               <span className="text-slate-300 font-semibold">Solver Style:</span>
-               <div className="flex gap-2">
-                  <button
-                    id="solver-style-flags"
-                    name="solver-style-flags"
-                    onClick={() => setSolverMode(PLAY_STYLE_FLAGS)}
-                    className={`px-3 py-1 rounded text-sm ${solverMode === PLAY_STYLE_FLAGS ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
-                  >
-                    Flags
-                  </button>
-                  <button
-                    id="solver-style-noflags"
-                    name="solver-style-noflags"
-                    onClick={() => setSolverMode(PLAY_STYLE_NOFLAGS)}
-                    className={`px-3 py-1 rounded text-sm ${solverMode === PLAY_STYLE_NOFLAGS ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
-                  >
-                    No Flags
-                  </button>
-                  <button
-                    id="solver-style-efficiency"
-                    name="solver-style-efficiency"
-                    onClick={() => setSolverMode(PLAY_STYLE_EFFICIENCY)}
-                    className={`px-3 py-1 rounded text-sm ${solverMode === PLAY_STYLE_EFFICIENCY ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
-                  >
-                    Efficiency
-                  </button>
-               </div>
-
-               <div className="w-px h-6 bg-slate-600 mx-2"></div>
-
                <button
                  id="solver-fast-mode"
                  name="solver-fast-mode"

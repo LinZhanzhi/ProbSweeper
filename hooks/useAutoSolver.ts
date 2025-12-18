@@ -26,7 +26,7 @@ export const useAutoSolver = ({
   const [isFastAutoMode, setIsFastAutoMode] = useState(false);
   const [isLightSpeedMode, setIsLightSpeedMode] = useState(false);
   const [isCertainMode, setIsCertainMode] = useState(false);
-  const [solverMode, setSolverMode] = useState<number>(PLAY_STYLE_FLAGS);
+  const solverMode = PLAY_STYLE_FLAGS; // Always use standard flags mode
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastHint, setLastHint] = useState<string | null>(null);
   const [analysisMode, setAnalysisMode] = useState(false);
@@ -130,7 +130,6 @@ export const useAutoSolver = ({
     isFastAutoMode, setIsFastAutoMode,
     isLightSpeedMode, setIsLightSpeedMode,
     isCertainMode, setIsCertainMode,
-    solverMode, setSolverMode,
     isProcessing,
     lastHint, setLastHint,
     analysisMode, setAnalysisMode
