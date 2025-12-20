@@ -2,6 +2,8 @@
   "name": "gemini-minesweeper",
   "private": true,
   "version": "0.0.0",
+  "description": "A Minesweeper game powered by Gemini AI",
+  "author": "LinZhanzhi",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
@@ -38,6 +40,10 @@
     ],
     "win": {
       "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     }
   }
 }
