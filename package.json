@@ -2,7 +2,7 @@
   "name": "probsweeper",
   "private": true,
   "version": "0.0.0",
-  "description": "A Minesweeper game powered by Gemini AI",
+  "description": "A modern Minesweeper with a probability engine",
   "author": "LinZhanzhi",
   "main": "electron/main.cjs",
   "type": "module",
