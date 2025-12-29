@@ -1,4 +1,4 @@
-# Refactoring Plan for Gemini Minesweeper
+# Refactoring Plan for ProbSweeper
 
 This document outlines the plan to refactor the codebase to improve maintainability, readability, and structure. The primary focus is on breaking down monolithic files and organizing components and utilities.
 

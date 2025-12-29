@@ -54,7 +54,7 @@ export const ExportView: React.FC<ExportViewProps> = ({
             </div>
 
             <div className="text-slate-500 text-sm font-mono flex items-center gap-2">
-                <Sparkles size={14} /> Gemini Minesweeper
+                <Sparkles size={14} /> ProbSweeper
             </div>
         </div>
     </div>

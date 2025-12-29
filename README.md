@@ -1,123 +1,84 @@
-# Gemini Minesweeper
+# ProbSweeper: Advanced Probabilistic Minesweeper
 
-A modern, AI-enhanced version of the classic Minesweeper game built with React, TypeScript, and Tailwind CSS. It features a built-in probabilistic auto-solver and integrates with Google's Gemini API for smart hints.
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
+![React](https://img.shields.io/badge/React-19.0-blue)
+![Vite](https://img.shields.io/badge/Vite-6.0-purple)
 
-## Features
+**ProbSweeper** is a modern, high-performance implementation of the classic Minesweeper game, engineered with a focus on algorithmic solving and mathematical precision.
 
-*   **Classic Gameplay**: Familiar Minesweeper mechanics with Left Click to reveal and Right Click to flag.
-*   **Chording**: Click on a revealed number to reveal all adjacent hidden cells if the correct number of flags are placed.
-*   **Safe Start**: The first click is guaranteed to be safe (and usually opens an area).
-*   **Auto-Finish Mode**: A built-in heuristic solver that calculates probabilities and plays the game for you. It uses:
-    *   **Certainty Pass**: Identifies 100% safe moves and mines based on constraint satisfaction.
-    *   **Probability Pass**: Uses a local probability tank algorithm to guess the safest cell when stuck.
-*   **Gemini AI Hints**: Ask the Gemini AI model for a second opinion on the best move.
-*   **Custom Boards**: Create custom board sizes (up to 50x50) and mine counts.
-*   **Responsive Design**: Works on desktop and mobile.
+Beyond standard gameplay, this project features a custom-built **Probability Engine** that calculates the exact safety percentage of every tile in real-time, allowing for perfect play optimization.
 
-## How to Play
+## 🚀 Key Features
 
-1.  **Reveal**: Left-click a cell.
-2.  **Flag**: Right-click a cell to mark it as a mine.
-3.  **Chord**: If a number cell (e.g., '2') has exactly 2 flags around it, click the number itself to reveal the remaining neighbors.
-4.  **Auto Finish**: Click the "Auto Finish Mode" button to watch the AI solve the board.
-5.  **Gemini Hint**: Click "Ask Gemini Hint" if you are stuck and want an LLM's perspective.
+-   **🤖 Dual-Layer Solver**:
+    -   **Constraint Satisfaction Engine**: Instantly identifies 100% safe moves and guaranteed mines.
+    -   **Probability Tank**: When no safe moves exist, it calculates the statistically safest guess using local probability density.
+-   **⚡ Modern Tech Stack**: Built with React 19, TypeScript, and Tailwind CSS for a responsive, type-safe experience.
+-   **📱 Cross-Platform**: Runs as a high-performance web app or a native Windows desktop application via Electron.
+-   **🎨 Advanced Gameplay**: Includes Chording, Safe Start guarantees, and custom board sizes (up to 50x50).
 
-## Setup & Run
+## 🛠️ Technical Highlights
 
-This project is built using standard web technologies.
+This project was built to explore complex state management and algorithmic efficiency in React.
 
+### The Probability Engine
+Located in `utils/probabilityEngine.ts`, the solver doesn't just guess. It models the board as a system of linear constraints:
+1.  **Witness Analysis**: Groups tiles into "Boxes" based on shared constraints.
+2.  **Combinatorial Search**: Calculates all valid mine configurations for the boundary tiles.
+3.  **Dead Tile Detection**: Identifies tiles that offer zero information gain, optimizing the decision tree.
+
+### AI Integration
+Th
 ### Prerequisites
+-   Node.js (v16+)
+-   npm or yarn
 
-*   Node.js (v16 or higher recommended)
-*   npm or yarn
+### Quick Start (Web)
 
-### Installation
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/yourusername/Gemini-Minesweeper.git
+    cd Gemini-Minesweeper
+    ```
 
-1.  Clone the repository or download the files.
-2.  Navigate to the project directory.
-3.  Install dependencies (if using a local bundler like Vite or Parcel).
+2.  **Install dependencies**
     ```bash
     npm install
     ```
 
-### Running
-
-Since this project uses ES modules and imports from CDNs (via `importmap` in `index.html`), it can be run directly with a simple static file server, or wrapped in a bundler.
-
-**Method 1: Simple Server (Recommended for quick preview)**
-
-You can use `serve`, `http-server`, or Python's built-in server.
-
-```bash
-# Python 3
-python3 -m http.server 8000
-```
-Then open `http://localhost:8000` in your browser.
-
-**Method 2: Using Vite**
-
-If you want to convert this to a full Vite project:
-1.  Run `npm create vite@latest`
-2.  Select React + TypeScript.
-3.  Copy the `src` files into the new project.
-4.  Ensure `API_KEY` is set in your `.env` file for Gemini features.
-
-## Building the Desktop App (Electron)
-
-This project includes an Electron wrapper to package the game as a standalone desktop application (`.exe` installer for Windows).
-
-### Prerequisites
-*   Ensure you have installed all dependencies:
-    ```bash
-    npm install
-    ```
-
-### Build Command
-To build the Windows installer:
-```bash
-npm run dist
-```
-
-This command will:
-1.  Build the React web application (`npm run build`).
-2.  Package the application using `electron-builder`.
-3.  Output the installer and executable in the `release/` directory.
-
-### Development Mode
-To run the Electron app in development mode (with hot-reloading):
-
-1.  Start the Vite dev server in one terminal:
+3.  **Run the development server**
     ```bash
     npm run dev
     ```
-2.  Start Electron in a second terminal:
-    ```bash
-    # PowerShell
-    $env:NODE_ENV="development"; npm run electron:dev
+    Open `http://localhost:5173` to play.
 
-    # Bash
-    NODE_ENV=development npm run electron:dev
-    ```
+### Desktop App (Electron)
 
-## Environment Variables
+To build the standalone Windows application:
 
-To use the Gemini Hint feature, you must have a Google Gemini API Key.
-
-If running locally with a bundler that supports environment variables (like Vite), create a `.env` file:
-
+```bash
+npm run dist
 ```
-API_KEY=your_gemini_api_key_here
+The installer will be generated in the `release/` folder.
+
+## 🔑 Environment Configuration
+
+To enable the AI features, you need a Google Gemini API Key.
+
+├── components/        # React UI components (Board, Cell, Game)
+├── hooks/            # Custom hooks (useGameLogic, useAutoSolver)
+├── services/         # External API integrations (Gemini)
+├── utils/            # Core algorithms
+│   ├── probabilityEngine.ts  # The math brain
+│   ├── solver.ts             # Solver orchestration
+│   └── boardGenerator.ts     # Safe-start board generation
+└── electron/         # Electron main process
 ```
 
-*Note: In the current static version, the API key is expected to be available in `process.env.API_KEY`. If running in a browser-only environment without a build step that injects this, the Gemini feature may not work unless you manually configure the client.*
+## 🤝 Contributing
 
-## Tech Stack
+Cont
+## 📄 License
 
-*   **Frontend**: React 19, TypeScript
-*   **Styling**: Tailwind CSS
-*   **Icons**: Lucide React
-*   **AI**: Google GenAI SDK (`@google/genai`)
-
-## License
-
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
