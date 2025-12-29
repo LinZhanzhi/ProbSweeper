@@ -62,13 +62,12 @@ npm run dist
 ```
 The installer will be generated in the `release/` folder.
 
-## 🔑 Environment Configuration
+## 🏗️ Project Structure
 
-To enable the AI features, you need a Google Gemini API Key.
-
+```
 ├── components/        # React UI components (Board, Cell, Game)
 ├── hooks/            # Custom hooks (useGameLogic, useAutoSolver)
-├── services/         # External API integrations (Gemini)
+├── services/         # External API integrations
 ├── utils/            # Core algorithms
 │   ├── probabilityEngine.ts  # The math brain
 │   ├── solver.ts             # Solver orchestration
@@ -78,7 +77,8 @@ To enable the AI features, you need a Google Gemini API Key.
 
 ## 🤝 Contributing
 
-Cont
+Contributions are welcome! Please feel free to submit a Pull Request.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
